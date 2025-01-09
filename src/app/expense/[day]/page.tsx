@@ -1,6 +1,6 @@
 'use client'
 
-import { notFound, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useBudgets, useExpenseActions, useExpenses } from "@/store/useExpenseStore"
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -42,10 +42,11 @@ export default function Page() {
     const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         if (!spend.amount || !spend.description) return;
+
         addExpense(day, { amount: spend.amount, description: spend.description });
         if (currBudget?.id && currBudget.remaining) {
             updateBudget(currBudget.id, { remaining: currBudget.remaining - spend.amount });
-        } console.log(currBudget, 67890)
+        }
 
         try {
             await axios.post('/api/expense', {
@@ -58,8 +59,6 @@ export default function Page() {
             // TODO: Add error handling
         }
     };
-
-    if (!currBudget) return notFound()
 
     return (
         <div className="max-w-2xl mx-auto p-4 space-y-6">

@@ -34,6 +34,8 @@ interface ExpenseState {
 
 		setIsLoading: (loading: boolean) => void;
 		setError: (error: string | null) => void;
+
+		resetState: () => void;
 	};
 }
 
@@ -135,6 +137,14 @@ const useExpenseStore = create<ExpenseState>()(
 					setError: (error: string | null) =>
 						set(() => ({
 							error,
+						})),
+					resetState: () =>
+						set(() => ({
+							user: null,
+							expenses: {},
+							budgets: [],
+							isLoading: false,
+							error: null,
 						})),
 				},
 			}),

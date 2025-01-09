@@ -21,15 +21,19 @@ export default function AppNavbar() {
     const user = useUser()
     const { status, data: sessionData } = useSession()
     const router = useRouter()
-    const { setUser, setBudgets } = useExpenseActions()
+    const { setUser, setBudgets, resetState } = useExpenseActions()
+
+
 
     useEffect(() => {
-        const fetchBudgetsData = async () => {
-            const response = await axios.get('/api/budget', { params: { page: 1, limit: 10 } })
-            setBudgets(response.data.data.budgets)
+        if (status === 'authenticated') {
+            const fetchBudgetsData = async () => {
+                const response = await axios.get('/api/budget', { params: { page: 1, limit: 10 } })
+                setBudgets(response.data.data.budgets)
+            }
+            fetchBudgetsData()
         }
-        fetchBudgetsData()
-    }, [setBudgets])
+    }, [setBudgets, status])
 
     useEffect(() => {
         if (status === 'authenticated' && !user) {
@@ -42,10 +46,11 @@ export default function AppNavbar() {
         }
     }, [status, sessionData?.user, setUser, user])
 
-    const handleSignOut = () => {
-        setUser(null)
-        signOut()
+    const handleSignOut = async () => {
+        await resetState()
+        signOut({ callbackUrl: '/' })
     }
+
 
     return (
         <div className="flex justify-between border-b p-2">
@@ -65,7 +70,7 @@ export default function AppNavbar() {
                     </NavigationMenuItem> */}
                     <NavigationMenuItem className="text-sm">
                         {/* {JSON.stringify(user)} */}
-                        <Button onClick={() => (user ? handleSignOut() : signIn())} disabled={status === 'loading'}> {user ? 'Logout' : 'Login'}</Button>
+                        <Button onClick={() => (status === 'authenticated' ? handleSignOut() : signIn())} disabled={status === 'loading'}> {status === 'authenticated' ? 'Logout' : 'Login'}</Button>
                     </NavigationMenuItem>
                 </NavigationMenuList>
             </NavigationMenu>
