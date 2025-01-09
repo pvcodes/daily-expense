@@ -1,21 +1,11 @@
 'use client'
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, DollarSign, LineChart, Menu, X } from 'lucide-react';
+import { PlusCircle, DollarSign, LineChart } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
 const LandingPage = () => {
-    const [isNavOpen, setIsNavOpen] = useState(false);
-
-    // Mock expense data for the chart
-    const demoData = [
-        { day: 'Mon', amount: 30 },
-        { day: 'Tue', amount: 45 },
-        { day: 'Wed', amount: 25 },
-        { day: 'Thu', amount: 60 },
-        { day: 'Fri', amount: 35 }
-    ];
 
     return (
         <div className="min-h-screen bg-white">
