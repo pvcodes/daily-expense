@@ -1,0 +1,25 @@
+{
+	"data": {
+		"2025-01-07": {
+			"budget": 1000,
+			"transactions": [
+				{
+					"amount": 200,
+					"description": "Groceries",
+					"category": "Food"
+				},
+				{
+					"amount": 50,
+					"description": "Bus Pass",
+					"category": "Transportation"
+				},
+				{
+					"amount": 150,
+					"description": "Electricity Bill",
+					"category": "Utilities"
+				}
+			],
+			"remainingAmount": 600
+		}
+	}
+}
