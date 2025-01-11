@@ -108,9 +108,11 @@ const useExpenseStore = create<ExpenseState>()(
 							budgets,
 						})),
 					addBudget: (budget: Partial<Budget>) =>
-						set((state) => ({
-							budgets: [...state.budgets, budget],
-						})),
+						set(
+							produce((state: ExpenseState) => {
+								state.budgets.unshift(budget);
+							})
+						),
 					removeBudget: (budgetId: number) =>
 						set((state) => ({
 							budgets: state.budgets.filter(

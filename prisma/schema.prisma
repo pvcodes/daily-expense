@@ -22,6 +22,7 @@ model User {
 
   expenses Expense[]
   budgets  Budget[]
+  Bin      Bin[]
 }
 
 model Expense {
@@ -45,4 +46,16 @@ model Budget {
   Expense   Expense[]
 
   @@unique([day, userId])
+}
+
+model Bin {
+  id         Int      @id @default(autoincrement())
+  uid        String   @unique
+  name       String   @unique
+  content    String
+  userId     Int
+  isMarkdown Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 }

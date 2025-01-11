@@ -1,27 +1,38 @@
-import db from "@/db";
 import { authOptions } from "@/lib/auth";
-import { Session } from "next-auth";
-import { getServerSession } from "next-auth";
-export async function DELETE() {
+import { getServerSession, Session } from "next-auth";
+import { NextRequest } from "next/server";
+import db from "@/db";
+
+export async function GET(request: NextRequest) {
 	try {
 		const { user } = (await getServerSession(authOptions)) as Session;
+		const params = request.nextUrl.searchParams;
+		const deletions = {};
 
-		const expense = await db.expense.deleteMany({
-			where: { userId: user.id },
-		});
+		// Define a mapping of parameter names to database models
+		const models = {
+			expense: db.expense,
+			bin: db.bin,
+			budget: db.budget,
+		};
 
-		const budget = await db.budget.deleteMany({
-			where: { userId: user.id },
-		});
+		// Iterate over the models and delete if the corresponding parameter is true
+		for (const [key, model] of Object.entries(models)) {
+			if (params.get(key) === "true") {
+				deletions[key] = await model.deleteMany({
+					where: { userId: user.id },
+				});
+			}
+		}
 
 		return Response.json({
 			success: true,
-			data: { budget, expense },
+			data: deletions,
 		});
 	} catch (error) {
 		return Response.json(
 			{
-				success: true,
+				success: false,
 				error,
 			},
 			{ status: 400 }
