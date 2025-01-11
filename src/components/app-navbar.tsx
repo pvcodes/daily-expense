@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { useUser, useExpenseActions } from "@/store/useExpenseStore"
 import axios from "axios"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 // Custom hook to handle user data synchronization
 const useUserSync = () => {
@@ -56,27 +57,6 @@ const useBudgetSync = () => {
     }, [setBudgets, status])
 }
 
-// NavButton component for consistent styling
-const NavButton = ({
-    children,
-    onClick,
-    disabled = false,
-    className = ""
-}: {
-    children: React.ReactNode
-    onClick: () => void
-    disabled?: boolean
-    className?: string
-}) => (
-    <Button
-        onClick={onClick}
-        disabled={disabled}
-        className={`text-sm ${className}`}
-    >
-        {children}
-    </Button>
-)
-
 export default function AppNavbar() {
     const router = useRouter()
     const { resetState } = useExpenseActions()
@@ -102,25 +82,45 @@ export default function AppNavbar() {
 
     return (
         <div className="flex justify-between items-center border-b p-2">
-            <NavButton
+            <Button
                 onClick={handleHome}
-                className="remove-all"
+                className="remove-all text-sm"
             >
                 <TypographyH3>Expense Manager*</TypographyH3>
-            </NavButton>
+            </Button>
 
             <NavigationMenu>
                 <NavigationMenuList>
                     <NavigationMenuItem>
-                        <NavButton
+                        <Button
                             onClick={handleAuth}
                             disabled={status === 'loading'}
+                            className="text-sm"
+
                         >
                             {status === 'authenticated' ? 'Logout' : 'Login'}
-                        </NavButton>
+                        </Button>
                     </NavigationMenuItem>
                 </NavigationMenuList>
             </NavigationMenu>
+            <div className="fixed bottom-8 left-8 z-50">
+                <Button
+                    size='icon'
+                    variant='secondary'
+                    onClick={() => router.back()}
+                >
+                    <ChevronLeft className="w-4" />
+                </Button>
+            </div>
+            <div className="fixed bottom-8 right-8 z-50">
+                <Button
+                    size='icon'
+                    variant='secondary'
+                    onClick={() => router.forward()}
+                >
+                    <ChevronRight className="w-4" />
+                </Button>
+            </div>
         </div>
     )
 }
