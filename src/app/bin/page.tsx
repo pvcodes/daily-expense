@@ -36,7 +36,7 @@ const NotesInput = () => {
             setBins(response.data.data.bins)
         }
         fetchBinData()
-    }, [])
+    }, [setBins])
 
     return (
         <Card className="w-full max-w-2xl mx-auto">

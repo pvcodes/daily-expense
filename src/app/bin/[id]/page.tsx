@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -31,17 +31,17 @@ const BinEditor = () => {
     // const currBin = 
     const { updateBin } = useBinActions()
 
-    const [bin, setBin] = useState<Partial<Bin>>(useBins().find(binS => bin_uid && binS.uid === bin_uid))
+    const [bin, setBin] = useState<Partial<Bin>>(useBins().find(binS => bin_uid && binS.uid === bin_uid) || {})
 
     const [copied, setCopied] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         setSaving(true);
-
-        updateBin(bin.uid, bin)
-
-        axios.put('/api/bin', bin).then((response) => updateBin(bin.uid, { updatedAt: response.data.data.bin.updatedAt })).catch(err => console.log('hihi', 12))
+        if (bin.uid) {
+            updateBin(bin.uid, bin)
+            axios.put('/api/bin', bin).then((response) => updateBin(bin.uid as string, { updatedAt: response.data.data.bin.updatedAt })).catch(err => console.log('hihi', 12, err))
+        }
 
         // Simulate API call
         // await new Promise(resolve => setTimeout(resolve, 1000));
@@ -49,9 +49,9 @@ const BinEditor = () => {
         // Add your actual save logic here
     };
 
-    const handleDelete = async () => {
-        // Add your delete logic here
-    };
+    // const handleDelete = async () => {
+    //     // Add your delete logic here
+    // };
 
     const handleShare = async () => {
         const url = `${window.location.origin}/bin/${bin.id}`;
