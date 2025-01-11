@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
 			data: {
 				email: payload.data.email as string,
 				password: await bcrypt.hash(payload.data.password, 10),
+				name: payload.data.name,
+				img_url: payload.data.img_url,
 			},
 			select: {
 				email: true,
