@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { produce } from "immer";
-import { Bin } from "@prisma/client";
+import { Bin } from "@/types/bin";
 
 interface BinState {
 	bins: Partial<Bin>[]; // Updated from notes to bins

@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 	try {
 		// Get authenticated session
 		const { user } = (await getServerSession(authOptions)) as Session;
-		const { name, content, uid } = await req.json();
+		const { name, content, uid, isMarkdown } = await req.json();
 
 		console.log({ name, content, user });
 
@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
 				uid,
 				name,
 				content,
+				isMarkdown,
 			},
 		});
 
@@ -149,3 +150,47 @@ export async function PUT(req: NextRequest) {
 		);
 	}
 }
+
+// ... existing code ...
+
+export async function DELETE(req: NextRequest) {
+	try {
+		// Get authenticated session
+		const { user } = (await getServerSession(authOptions)) as Session;
+		const uid = req.nextUrl.searchParams.get("uid");
+
+		if (!uid) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "UID is required",
+				},
+				{ status: 400 }
+			);
+		}
+
+		const bin = await db.bin.delete({
+			where: {
+				uid,
+				userId: user.id,
+			},
+		});
+
+		return NextResponse.json({
+			success: true,
+			data: { bin },
+		});
+	} catch (error) {
+		console.error("Bin delete error:", error);
+
+		return NextResponse.json(
+			{
+				success: false,
+				error: "Internal server error",
+			},
+			{ status: 400 }
+		);
+	}
+}
+
+// ... existing code ...

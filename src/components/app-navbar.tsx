@@ -11,7 +11,6 @@ import { Button } from "./ui/button"
 import { useRouter } from "next/navigation"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { useUser, useExpenseActions } from "@/store/useExpenseStore"
-import axios from "axios"
 import { ChevronLeft, ChevronRight, Terminal, X } from "lucide-react"
 import { Alert, AlertDescription, } from "@/components/ui/alert"
 import Link from "next/link"
@@ -37,37 +36,13 @@ const useUserSync = () => {
     return { status }
 }
 
-// Custom hook to handle budget data fetching
-const useBudgetSync = () => {
-    const { status } = useSession()
-    const { setBudgets } = useExpenseActions()
-
-    useEffect(() => {
-        const fetchBudgets = async () => {
-            if (status === 'authenticated') {
-                try {
-                    const response = await axios.get('/api/budget', {
-                        params: { page: 1, limit: 10 }
-                    })
-                    setBudgets(response.data.data.budgets)
-                } catch (error) {
-                    // TODO
-                    console.error('Failed to fetch budgets:', error)
-                }
-            }
-        }
-
-        fetchBudgets()
-    }, [setBudgets, status])
-}
-
 export default function AppNavbar() {
     const router = useRouter()
     const { resetState } = useExpenseActions()
     const { setHasShowNoti } = useUiActions()
     const hasShowNoti = useHasShowNotification()
     const { status } = useUserSync()
-    useBudgetSync()
+    // useBudgetSync()
 
     const handleSignOut = useCallback(() => {
         resetState()
