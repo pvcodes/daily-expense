@@ -1,5 +1,5 @@
 'use client'
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,16 +14,15 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useBudgets } from '@/store/useExpenseStore';
+import { useBudget } from '@/store/useExpenseStore';
 import { useBins } from '@/store/useBinStore';
 import Link from 'next/link';
 import { dateToString } from '@/lib/utils';
-import { Budget } from '@/types/expense';
 
 export default function DashboardPage() {
     const [view, setView] = useState('all');
-    const { budgets, isLoading, isError } = useBudgets();
-    const latestBudget: Budget = useMemo(() => budgets?.[0] ?? { day: '0', amount: NaN, remaining: NaN, }, [budgets]);
+    const { budget, isLoading, isError } = useBudget(dateToString(new Date().toISOString()))
+    const latestBudget = budget!
     const { bins } = useBins();
     const recentBins = bins?.slice(0, 5) || [];
 
@@ -67,6 +66,7 @@ export default function DashboardPage() {
             </div>
         );
     }
+
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-4 lg:p-6">

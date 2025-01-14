@@ -7,8 +7,6 @@ export async function POST(req: NextRequest) {
 	try {
 		const { user } = (await getServerSession(authOptions)) as Session;
 		const { amount } = await req.json();
-		console.log({ amount });
-		console.log({ user }, 234567);
 		const budget = await db.budget.create({
 			data: {
 				amount: parseFloat(amount),
@@ -21,7 +19,6 @@ export async function POST(req: NextRequest) {
 			data: { budget },
 		});
 	} catch (error) {
-		// console.log(error ?? "something");
 		return Response.json(
 			{
 				success: false,

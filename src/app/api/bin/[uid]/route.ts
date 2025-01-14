@@ -9,7 +9,6 @@ export async function GET(
 ) {
 	try {
 		const uid = (await params).uid;
-		console.log(uid, 123213131);
 		const bin = await db.bin.findFirstOrThrow({
 			where: {
 				uid,

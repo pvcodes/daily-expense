@@ -10,12 +10,10 @@ interface ALL_BINS {
 export const binApi = {
 	fetchBins: async (page: number, limit: number) => {
 		try {
-			console.log(page, limit, 12313213);
 			const response = await axios.get("/api/bin", {
 				params: { page, limit },
 			});
 			const data: ApiResponse<ALL_BINS> = response.data;
-			console.log(data, 12314);
 
 			// TODO: pagination data also come
 			return data.data;

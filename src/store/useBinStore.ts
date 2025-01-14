@@ -4,18 +4,16 @@ import { produce } from "immer";
 import { Bin } from "@/types/bin";
 import { useQuery } from "@tanstack/react-query";
 import { binApi } from "@/service/binService";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { STALE_TIME, REFETCH_INTERVAL } from "@/constant";
 
 interface BinState {
-	bins: Bin[]; // Updated from notes to bins
-	//TODO no user bins, when user fetch when he is not authenticated
-
+	bins: Bin[];
 	actions: {
-		setBins: (bins: Bin[]) => void; // Updated from setNotes to setBins
-		addBin: (bin: Bin) => void; // Updated from addNote to addBin
-		removeBin: (binUid: string) => void; // Updated from removeNote to removeBin
-		updateBin: (binUid: string, updatedBin: Bin) => void; // Updated from updateNote to updateBin
-		resetState: () => void;
+		setBins: (bins: Bin[]) => void;
+		addBin: (bin: Bin) => void;
+		removeBin: (binUid: string) => void;
+		updateBin: (binUid: string, updatedBin: Partial<Bin>) => void;
 	};
 }
 
@@ -23,35 +21,42 @@ const useBinStore = create<BinState>()(
 	devtools(
 		persist(
 			(set) => ({
-				bins: [], // Updated from notes to bins
+				bins: [],
 				actions: {
-					setBins: (bins: Bin[]) => set(() => ({ bins })),
-					addBin: (bin: Bin) =>
+					setBins: (bins) =>
 						set(
 							produce((state: BinState) => {
-								console.log(bin);
-								const existingBin = state.bins.find(
+								state.bins = bins;
+							})
+						),
+
+					addBin: (bin) =>
+						set(
+							produce((state: BinState) => {
+								const existingBinIndex = state.bins.findIndex(
 									(b) => b.uid === bin.uid
 								);
-								console.log(existingBin);
-								if (!existingBin) {
+								if (existingBinIndex === -1) {
 									state.bins.unshift(bin);
+								} else {
+									state.bins[existingBinIndex] = {
+										...state.bins[existingBinIndex],
+										...bin,
+									};
 								}
 							})
 						),
-					removeBin: (
-						binUid: string // Updated from removeNote to removeBin
-					) =>
-						set((state : BinState) => ({
-							bins: state.bins.filter(
-								// Updated from notes to bins
-								(bin) => bin.uid !== binUid
-							),
-						})),
-					updateBin: (
-						binUid: string,
-						updatedBin: Bin // Updated from updateNote to updateBin
-					) =>
+
+					removeBin: (binUid) =>
+						set(
+							produce((state: BinState) => {
+								state.bins = state.bins.filter(
+									(bin) => bin.uid !== binUid
+								);
+							})
+						),
+
+					updateBin: (binUid, updatedBin) =>
 						set(
 							produce((state: BinState) => {
 								const binIndex = state.bins.findIndex(
@@ -65,10 +70,6 @@ const useBinStore = create<BinState>()(
 								}
 							})
 						),
-					resetState: () =>
-						set(() => ({
-							bins: [], // Updated from notes to bins
-						})),
 				},
 			}),
 			{
@@ -84,26 +85,38 @@ const useBinStore = create<BinState>()(
 	)
 );
 
-// State exports
-// export const useBins = () => useBinStore((state) => state.bins); // Updated from useNotes to useBins
-
-export const useBins = (pageNo: number = 1, limit: number = 10) => {
-	const bins = useBinStore((state: BinState) => state.bins);
+export const useBins = (pageNo = 1, limit = 10) => {
 	const { setBins } = useBinActions();
-	const { data, isLoading, error, isError } = useQuery({
-		queryKey: ["bins", `${pageNo}-${limit}`],
-		queryFn: () => binApi.fetchBins(pageNo, limit),
-		staleTime: 300000,
+	const bins = useBinStore((state: BinState) => state.bins);
+
+	const queryResult = useQuery({
+		queryKey: ["bins", pageNo, limit],
+		queryFn: async () => {
+			const result = await binApi.fetchBins(pageNo, limit);
+			return result;
+		},
+		staleTime: STALE_TIME,
+		refetchInterval: REFETCH_INTERVAL,
 	});
+
+	const { data, isLoading, error, isError } = queryResult;
+
 	useEffect(() => {
-		console.log(data, 1231);
-		if (data?.bins) setBins(data?.bins);
+		if (data?.bins) {
+			setBins(data.bins);
+		}
 	}, [data, setBins]);
 
-	return { bins, isLoading, error, isError };
+	return {
+		bins,
+		isLoading,
+		error,
+		isError,
+	};
 };
 
-// Actions export
-export const useBinActions = () => useBinStore((state: BinState) => state.actions);
+export const useBinActions = () => {
+	return useBinStore(useCallback((state: BinState) => state.actions, []));
+};
 
 export default useBinStore;

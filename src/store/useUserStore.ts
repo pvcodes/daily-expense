@@ -1,9 +1,9 @@
 import { User } from "@/types/user";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { useExpenseActions } from "./useExpenseStore";
-import { useUiActions } from "./useUiStore";
-import { useBinActions } from "./useBinStore";
+import useExpenseStore from "./useExpenseStore";
+import useBinStore from "./useBinStore";
+import { produce } from "immer";
 
 interface UserState {
 	user: User | null;
@@ -21,20 +21,15 @@ const useUserStore = create<UserState>()(
 				actions: {
 					setUserAction: (user: User) => set({ user }),
 					resetStore: () =>
-						set(() => {
-							const { resetState: resetExpenseState } =
-								useExpenseActions();
-							const { resetState: resetUiState } = useUiActions();
-							const { resetState: resetBinState } =
-								useBinActions();
-
-							resetExpenseState();
-							resetUiState();
-							resetBinState();
-							localStorage.removeItem('bin-storage');
-							localStorage.removeItem('expense-storage');
-							return { user: null };
-						}),
+						set(
+							produce((state: UserState) => {
+								useExpenseStore.persist.clearStorage();
+								state.user = null;
+								useUserStore.persist.clearStorage();
+								useExpenseStore.persist.clearStorage();
+								useBinStore.persist.clearStorage();
+							})
+						),
 				},
 			}),
 			{

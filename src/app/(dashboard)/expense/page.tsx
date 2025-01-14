@@ -13,6 +13,7 @@ import { useBudget, useBudgets, useExpenseActions } from "@/store/useExpenseStor
 import { expenseApi } from "@/service/expenseService"
 import { dateToString } from "@/lib/utils"
 import { toast } from "sonner"
+import { MAX_INT } from "@/constant"
 
 
 // Components
@@ -118,6 +119,12 @@ export default function Dashboard() {
     // TODO [OPTIMIZE]
     const handleAddTodayBudget = async (amount: number) => {
         if (!amount) return
+
+        if (amount > MAX_INT) {
+            toast("Get a Investment Banker, we can't help")
+            return
+        }
+
         addBudget({ day: new Date().toISOString(), amount, remaining: amount, id: -1 })
         expenseApi.addBudget(amount)
             .then((data) => updateBudget(-1, data.budget))

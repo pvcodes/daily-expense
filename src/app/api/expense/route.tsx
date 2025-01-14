@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
         const { user } = await getServerSession(authOptions) as Session;
         const { description, amount, budgetId } = await req.json();
 
-        console.log({ description, amount, budgetId })
 
         const expense = await db.expense.create({
             data: {

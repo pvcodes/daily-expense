@@ -12,6 +12,7 @@ import { Expense } from '@/types/expense'
 import { useExpenseActions, useExpenses, useBudget } from '@/store/useExpenseStore'
 import { expenseApi } from '@/service/expenseService'
 import { toast } from 'sonner'
+import { MAX_INT } from '@/constant'
 
 
 // Types
@@ -116,13 +117,17 @@ export default function ExpensePage() {
     const { addExpense, updateExpense } = useExpenseActions()
 
 
+
     const [spend, setSpend] = useState<SpendState>({ amount: NaN, description: '' })
 
     const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (spend.amount > MAX_INT) {
+            toast("Get a Investment Banker, we can't help")
+            return
+        }
         if (!currBudget?.id) { toast('Something went wrong, Please refresh'); return }
         if (!spend.amount || !spend.description) return
-        console.log(day)
 
         try {
             addExpense(day, { ...spend, date: new Date(), id: -1 })

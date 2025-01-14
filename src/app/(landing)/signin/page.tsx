@@ -1,6 +1,5 @@
 'use client'
-
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,7 +13,6 @@ import { getSession, signIn } from 'next-auth/react'
 import { useUserActions } from '@/store/useUserStore'
 import { User } from '@/types/user'
 
-// Type definitions for better type safety
 type AuthTab = 'signin' | 'signup'
 
 interface FormState {
@@ -30,244 +28,212 @@ interface AuthState {
     tab: AuthTab
 }
 
+const INITIAL_FORM_STATE: FormState = {
+    email: '',
+    password: '',
+    name: '',
+    img_url: ''
+}
+
+const INITIAL_AUTH_STATE: AuthState = {
+    isLoading: false,
+    error: '',
+    tab: 'signin'
+}
+
+const MIN_PASSWORD_LENGTH = 6
+
 export default function AuthTabs() {
     const router = useRouter()
     const { setUserAction } = useUserActions()
+    const [formData, setFormData] = useState<FormState>(INITIAL_FORM_STATE)
+    const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE)
 
-    // Combined form state
-    const [formData, setFormData] = useState<FormState>({
-        email: '',
-        password: '',
-        name: '',
-        img_url: ''
-    })
-
-    // UI state
-    const [authState, setAuthState] = useState<AuthState>({
-        isLoading: false,
-        error: '',
-        tab: 'signin'
-    })
-
-    // Handle input changes
-    const handleInputChange = (field: keyof FormState) => (
+    const handleInputChange = useCallback((field: keyof FormState) => (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
         setFormData(prev => ({
             ...prev,
             [field]: e.target.value
         }))
-    }
+    }, [])
 
-    // Set error helper
-    const setError = (error: string) => {
+    const setError = useCallback((error: string) => {
         setAuthState(prev => ({ ...prev, error, isLoading: false }))
-    }
+    }, [])
 
-    // Handle tab change
-    const handleTabChange = (tab: AuthTab) => {
+    const handleTabChange = useCallback((tab: AuthTab) => {
         setAuthState(prev => ({ ...prev, tab, error: '' }))
-    }
+    }, [])
 
-    // Sign in handler
-    const handleSignIn = async (e: React.FormEvent) => {
-        e.preventDefault()
-        const { email, password } = formData
-
+    const validateSignIn = useCallback(({ email, password }: FormState) => {
         if (!email || !password) {
             setError('Email and password are required')
-            return
+            return false
         }
+        return true
+    }, [setError])
 
-        setAuthState(prev => ({ ...prev, isLoading: true, error: '' }))
-
-        signIn('credentials', {
-            email,
-            password,
-            redirect: false
-        }).then(async (response) => {
-            if (response?.ok) {
-                const session = await getSession()
-                setUserAction(session?.user as User) // when res is true then session is defined
-                return router.push('/dashboard')
-            } else {
-                setError('Sigin failed, please check your credentials')
-            }
-        })
-    }
-
-    // Sign up handler
-    const handleSignUp = async (e: React.FormEvent) => {
-        e.preventDefault()
-        const { name, email, password, img_url } = formData
-
+    const validateSignUp = useCallback(({ name, email, password }: FormState) => {
         if (!name || !email || !password) {
             setError('Name, email and password are required')
-            return
+            return false
         }
-        if (password.length < 6) {
-            setError('Password should be more than 5 characters')
-            return
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            setError(`Password should be at least ${MIN_PASSWORD_LENGTH} characters`)
+            return false
         }
+        return true
+    }, [setError])
+
+    const handleSignIn = useCallback(async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!validateSignIn(formData)) return
 
         setAuthState(prev => ({ ...prev, isLoading: true, error: '' }))
 
         try {
-            axios.post('/api/user', { name, email, password, img_url })
+            const response = await signIn('credentials', {
+                email: formData.email,
+                password: formData.password,
+                redirect: false
+            })
+
+            if (response?.ok) {
+                const session = await getSession()
+                setUserAction(session?.user as User)
+                router.push('/dashboard')
+            } else {
+                setError('Sign in failed, please check your credentials')
+            }
+        } catch (err) {
+            console.log(err)
+            setError('An unexpected error occurred')
+        }
+    }, [formData, router, setError, setUserAction, validateSignIn])
+
+    const handleSignUp = useCallback(async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!validateSignUp(formData)) return
+
+        setAuthState(prev => ({ ...prev, isLoading: true, error: '' }))
+
+        try {
+            await axios.post('/api/user', formData)
             setAuthState(prev => ({ ...prev, tab: 'signin', isLoading: false }))
-            // Clear form except email for easy sign in
             setFormData(prev => ({
                 ...prev,
                 password: '',
                 name: '',
                 img_url: ''
             }))
-        } catch (err) {
-            // TODO
+        } catch (error) {
+            console.log(error)
             setError('Failed to sign up')
-            console.log(err)
-        } finally {
-            setAuthState(prev => ({ ...prev, isLoading: false, error: 'Something went wrong' }))
-
         }
-    }
+    }, [formData, setError, validateSignUp])
 
-    // Loading button content
-    const LoadingButton = () => (
-        <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {authState.tab === 'signin' ? 'Signing in...' : 'Signing up...'}
-        </>
-    )
+    const LoadingButton = useMemo(() => {
+        const Component = () => (
+            <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {authState.tab === 'signin' ? 'Signing in...' : 'Signing up...'}
+            </>
+        );
+        Component.displayName = 'LoadingButton';
+        return Component;
+    }, [authState.tab]);
+
+
+    const ErrorAlert = useMemo(() => {
+        if (!authState.error) return null
+        return (
+            <Alert variant="destructive" className="flex items-center">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="ml-2">{authState.error}</AlertDescription>
+            </Alert>
+        )
+    }, [authState.error])
+
+    const renderFormFields = useCallback((isSignIn: boolean) => {
+        const fields = [
+            !isSignIn && {
+                id: 'name',
+                label: 'Name',
+                placeholder: 'John Doe',
+                type: 'text'
+            },
+            {
+                id: 'email',
+                label: 'Email',
+                placeholder: 'you@example.com',
+                type: 'email'
+            },
+            {
+                id: 'password',
+                label: 'Password',
+                type: 'password'
+            },
+            !isSignIn && {
+                id: 'img_url',
+                label: 'Profile Image URL (Optional)',
+                placeholder: 'https://example.com/image.jpg',
+                type: 'text'
+            }
+        ].filter(Boolean)
+
+        return fields.map(field => field && (
+            <div key={field.id} className="space-y-2">
+                <Label htmlFor={`${authState.tab}-${field.id}`}>{field.label}</Label>
+                <Input
+                    id={`${authState.tab}-${field.id}`}
+                    type={field.type}
+                    placeholder={field.placeholder}
+                    value={formData[field.id as keyof FormState] || ''}
+                    onChange={handleInputChange(field.id as keyof FormState)}
+                />
+            </div>
+        ))
+    }, [authState.tab, formData, handleInputChange])
 
     return (
-        <div className='h-full flex justify-center mt-4 lg:mt-16'>
+        <div className="h-full flex justify-center mt-4 lg:mt-16">
             <Tabs value={authState.tab} className="w-full max-w-md">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger
-                        value="signin"
-                        onClick={() => handleTabChange('signin')}
-                    >
+                    <TabsTrigger value="signin" onClick={() => handleTabChange('signin')}>
                         Sign In
                     </TabsTrigger>
-                    <TabsTrigger
-                        value="signup"
-                        onClick={() => handleTabChange('signup')}
-                    >
+                    <TabsTrigger value="signup" onClick={() => handleTabChange('signup')}>
                         Sign Up
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="signin">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Sign In</CardTitle>
-                        </CardHeader>
-                        <form onSubmit={handleSignIn}>
-                            <CardContent className="space-y-4">
-                                {authState.error && (
-                                    <Alert variant="destructive" className='flex items-center'>
-                                        <Button className='remove-all' size='icon'> <AlertCircle /></Button>
-                                        <AlertDescription className='p-2' >{authState.error}</AlertDescription>
-                                    </Alert>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="signin-email">Email</Label>
-                                    <Input
-                                        id="signin-email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        value={formData.email}
-                                        onChange={handleInputChange('email')}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="signin-password">Password</Label>
-                                    <Input
-                                        id="signin-password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange('password')}
-                                    />
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button
-                                    type="submit"
-                                    className="w-full"
-                                    disabled={authState.isLoading}
-                                >
-                                    {authState.isLoading ? <LoadingButton /> : 'Sign In'}
-                                </Button>
-                            </CardFooter>
-                        </form>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="signup">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Sign Up</CardTitle>
-                        </CardHeader>
-                        <form onSubmit={handleSignUp}>
-                            <CardContent className="space-y-4">
-                                {authState.error && (
-                                    <Alert variant="destructive" className='flex items-center'>
-                                        <Button className='remove-all' size='icon'> <AlertCircle /></Button>
-                                        <AlertDescription className='p-2' >{authState.error}</AlertDescription>
-                                    </Alert>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="signup-name">Name</Label>
-                                    <Input
-                                        id="signup-name"
-                                        placeholder="Ben Dover"
-                                        value={formData.name}
-                                        onChange={handleInputChange('name')}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="signup-email">Email</Label>
-                                    <Input
-                                        id="signup-email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        value={formData.email}
-                                        onChange={handleInputChange('email')}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="signup-password">Password</Label>
-                                    <Input
-                                        id="signup-password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange('password')}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="signup-imgurl">Profile Image URL (Optional)</Label>
-                                    <Input
-                                        id="signup-imgurl"
-                                        placeholder="https://example.com/image.jpg"
-                                        value={formData.img_url}
-                                        onChange={handleInputChange('img_url')}
-                                    />
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button
-                                    type="submit"
-                                    className="w-full"
-                                    disabled={authState.isLoading}
-                                >
-                                    {authState.isLoading ? <LoadingButton /> : 'Sign Up'}
-                                </Button>
-                            </CardFooter>
-                        </form>
-                    </Card>
-                </TabsContent>
+                {['signin', 'signup'].map((tab) => (
+                    <TabsContent key={tab} value={tab}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{tab === 'signin' ? 'Sign In' : 'Sign Up'}</CardTitle>
+                            </CardHeader>
+                            <form onSubmit={tab === 'signin' ? handleSignIn : handleSignUp}>
+                                <CardContent className="space-y-4">
+                                    {ErrorAlert}
+                                    {renderFormFields(tab === 'signin')}
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        type="submit"
+                                        className="w-full"
+                                        disabled={authState.isLoading}
+                                    >
+                                        {authState.isLoading ? <LoadingButton /> : (tab === 'signin' ? 'Sign In' : 'Sign Up')}
+                                    </Button>
+                                </CardFooter>
+                            </form>
+                        </Card>
+                    </TabsContent>
+                ))}
             </Tabs>
         </div>
     )
 }
+AuthTabs.displayName = 'AuthTabs';

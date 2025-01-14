@@ -71,7 +71,6 @@ const BinEditor = () => {
 
         binApi.fetchSingleBin(bin_uid)
             .then((bin) => {
-                console.log(bin, 12313)
                 setBin(bin)
                 addBin(bin)
             }).catch(() => {

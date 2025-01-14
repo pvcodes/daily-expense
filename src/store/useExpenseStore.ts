@@ -3,16 +3,15 @@ import { devtools, persist } from "zustand/middleware";
 import { produce } from "immer";
 import { expenseApi } from "@/service/expenseService";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Budget, Expense } from "@/types/expense";
 import { dateToString } from "@/lib/utils";
+import { STALE_TIME, REFETCH_INTERVAL } from "@/constant";
 
 interface ExpenseState {
 	expenses: Record<string, Partial<Expense>[]>;
 	budgets: Budget[];
-
 	actions: {
-		// Expense actions
 		setExpenses: (day: string, expenses: Expense[]) => void;
 		addExpense: (day: string, expense: Expense) => void;
 		removeExpense: (day: string, expenseId: number) => void;
@@ -21,8 +20,6 @@ interface ExpenseState {
 			expenseId: number,
 			updatedExpense: Partial<Expense>
 		) => void;
-
-		// Budget actions
 		setBudgets: (budgets: Budget[]) => void;
 		addBudget: (budget: Budget) => void;
 		removeBudget: (budgetId: number) => void;
@@ -30,91 +27,146 @@ interface ExpenseState {
 			budgetId: number,
 			updatedBudget: Partial<Budget>
 		) => void;
-
-		resetState: () => void;
 	};
 }
 
-export const useExpenseStore = create<ExpenseState>()(
+const useExpenseStore = create<ExpenseState>()(
 	devtools(
 		persist(
 			(set) => ({
 				expenses: {},
 				budgets: [],
 				actions: {
-					// Expense actions
-					setExpenses: (day: string, expenses: Partial<Expense>[]) =>
-						set((state) => ({
-							expenses: { ...state.expenses, [day]: expenses },
-						})),
-					addExpense: (day: string, expense: Expense) =>
+					setExpenses: (day, expenses) =>
 						set(
 							produce((state: ExpenseState) => {
-								const budgetIndex = state.budgets.findIndex(
-									(budget) => dateToString(budget.day) === day
-								);
-								state.budgets[budgetIndex].remaining -=
-									expense.amount;
+								state.expenses[day] = expenses;
+							})
+						),
 
+					addExpense: (day, expense) =>
+						set(
+							produce((state: ExpenseState) => {
+								const budget = state.budgets.find(
+									(b) => dateToString(b.day) === day
+								);
+								if (budget) {
+									budget.remaining = Number(
+										(
+											budget.remaining - expense.amount
+										).toFixed(2)
+									);
+								}
+								if (!state.expenses[day]) {
+									state.expenses[day] = [];
+								}
 								state.expenses[day].unshift(expense);
 							})
 						),
-					removeExpense: (day: string, expenseId: number) =>
-						set((state) => ({
-							expenses: {
-								...state.expenses,
-								[day]: state.expenses[day].filter(
-									(expense) => expense.id !== expenseId
-								),
-							},
-						})),
-					updateExpense: (
-						day: string,
-						expenseId: number,
-						updatedExpense: Partial<Expense>
-					) =>
-						set((state) => ({
-							expenses: {
-								...state.expenses,
-								[day]: state.expenses[day].map((expense) =>
-									expense.id === expenseId
-										? { ...expense, ...updatedExpense }
-										: expense
-								),
-							},
-						})),
 
-					// Budget actions
-					setBudgets: (budgets: Budget[]) => set(() => ({ budgets })),
-					addBudget: (budget: Budget) =>
+					removeExpense: (day, expenseId) =>
 						set(
 							produce((state: ExpenseState) => {
-								state.budgets.unshift(budget);
+								const expense = state.expenses[day]?.find(
+									(e) => e.id === expenseId
+								);
+								const budget = state.budgets.find(
+									(b) => dateToString(b.day) === day
+								);
+								if (expense && budget) {
+									budget.remaining = Number(
+										(
+											budget.remaining +
+											(expense.amount || 0)
+										).toFixed(2)
+									);
+								}
+								state.expenses[day] =
+									state.expenses[day]?.filter(
+										(e) => e.id !== expenseId
+									) || [];
 							})
 						),
-					removeBudget: (budgetId: number) =>
-						set((state) => ({
-							budgets: state.budgets.filter(
-								(budget) => budget.id !== budgetId
-							),
-						})),
-					updateBudget: (
-						budgetId: number,
-						updatedBudget: Partial<Budget>
-					) =>
-						set((state) => ({
-							budgets: state.budgets.map((budget) =>
-								budget.id === budgetId
-									? { ...budget, ...updatedBudget }
-									: budget
-							),
-						})),
 
-					resetState: () =>
-						set(() => ({
-							expenses: {},
-							budgets: [],
-						})),
+					updateExpense: (day, expenseId, updatedExpense) =>
+						set(
+							produce((state: ExpenseState) => {
+								const expenseIndex = state.expenses[
+									day
+								]?.findIndex((e) => e.id === expenseId);
+								if (
+									expenseIndex !== undefined &&
+									expenseIndex !== -1
+								) {
+									const oldAmount =
+										state.expenses[day][expenseIndex]
+											.amount || 0;
+									const newAmount =
+										updatedExpense.amount || oldAmount;
+									const budget = state.budgets.find(
+										(b) => dateToString(b.day) === day
+									);
+									if (budget) {
+										budget.remaining = Number(
+											(
+												budget.remaining +
+												oldAmount -
+												newAmount
+											).toFixed(2)
+										);
+									}
+									state.expenses[day][expenseIndex] = {
+										...state.expenses[day][expenseIndex],
+										...updatedExpense,
+									};
+								}
+							})
+						),
+
+					setBudgets: (budgets) =>
+						set(
+							produce((state: ExpenseState) => {
+								state.budgets = budgets;
+							})
+						),
+
+					addBudget: (budget) =>
+						set(
+							produce((state: ExpenseState) => {
+								const existingIndex = state.budgets.findIndex(
+									(b) => b.id === budget.id
+								);
+								if (existingIndex === -1) {
+									state.budgets.unshift(budget);
+								} else {
+									state.budgets[existingIndex] = budget;
+								}
+							})
+						),
+
+					removeBudget: (budgetId) =>
+						set(
+							produce((state: ExpenseState) => {
+								state.budgets = state.budgets.filter(
+									(b) => b.id !== budgetId
+								);
+							})
+						),
+
+					updateBudget: (budgetId, updatedBudget) =>
+						set(
+							produce((state: ExpenseState) => {
+								const budgetIndex = state.budgets.findIndex(
+									(b) => b.id === budgetId
+								);
+								if (budgetIndex !== -1) {
+									state.budgets[budgetIndex] = {
+										...state.budgets[budgetIndex],
+										...updatedBudget,
+									};
+								}
+							})
+						),
 				},
 			}),
 			{
@@ -131,73 +183,83 @@ export const useExpenseStore = create<ExpenseState>()(
 	)
 );
 
-// State exports
-export const useBudgets = (pageNo: number = 1, limit: number = 10) => {
-	const queryClient = useQueryClient(); // Get access to queryClient
+export const useBudgets = (pageNo = 1, limit = 10) => {
+	const queryClient = useQueryClient();
 	const { setBudgets } = useExpenseActions();
+	const budgets = useExpenseStore((state) => state.budgets);
+
 	const { data, isLoading, error, isError } = useQuery({
-		queryKey: ["budgets", `${pageNo}-${limit}`],
+		queryKey: ["budgets", pageNo, limit],
 		queryFn: async () => {
 			const result = await expenseApi.fetchBudgets(pageNo, limit);
-
-			result?.budgets?.map((budget) => {
+			result?.budgets?.forEach((budget) => {
 				queryClient.setQueryData(
 					["budgets", dateToString(budget.day)],
 					budget
 				);
 			});
-
-			// console.log(result.budgets)
-
 			return result.budgets;
 		},
-		staleTime: 300000,
+		staleTime: STALE_TIME,
 		retry: 1,
 		retryDelay: 120000,
 	});
+
 	useEffect(() => {
-		console.log(data, 45678);
 		if (data) {
-			console.log("data", 45678);
 			setBudgets(data);
 		}
 	}, [data, setBudgets]);
 
-	return { budgets: data, isLoading, error, isError };
+	return { budgets, isLoading, error, isError };
 };
 
 export const useBudget = (day: string) => {
-	// fetchBudget
-	const { data, isLoading, error, isError } = useQuery({
+	const { addBudget } = useExpenseActions();
+	const budget = useExpenseStore(
+		useCallback(
+			(state) => state.budgets.find((b) => dateToString(b.day) === day),
+			[day]
+		)
+	);
+
+	const { isLoading, error, isError } = useQuery({
 		queryKey: ["budgets", day],
 		queryFn: async () => {
 			const data = await expenseApi.fetchBudget(day);
-			console.log(data.budget, 99999);
+			if (data.budget) {
+				addBudget(data.budget);
+			}
 			return data.budget;
 		},
-		staleTime: 300000,
-		refetchInterval: 20000,
+		staleTime: STALE_TIME,
+		refetchInterval: REFETCH_INTERVAL,
 	});
-	return { budget: data, isLoading, error, isError };
+
+	return { budget, isLoading, error, isError };
 };
 
 export const useExpenses = (day: string) => {
-	const expenses = useExpenseStore((state: ExpenseState) => state.expenses);
 	const { setExpenses } = useExpenseActions();
-	const { data, isLoading, error, isError } = useQuery({
-		queryKey: ["expenses", `${day}`],
-		queryFn: () => expenseApi.fetchExpenses(day),
-		staleTime: 300000,
-		refetchInterval: 20000,
-	});
-	useEffect(() => {
-		if (data?.expenses) setExpenses(day, data?.expenses);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [data, setExpenses]);
+	const expenses = useExpenseStore((state) => state.expenses[day]);
 
-	return { expenses: expenses[day], isLoading, error, isError };
+	const { data, isLoading, error, isError } = useQuery({
+		queryKey: ["expenses", day],
+		queryFn: () => expenseApi.fetchExpenses(day),
+		staleTime: STALE_TIME,
+		refetchInterval: REFETCH_INTERVAL,
+	});
+
+	useEffect(() => {
+		if (data?.expenses) {
+			setExpenses(day, data.expenses);
+		}
+	}, [data, day, setExpenses]);
+
+	return { expenses, isLoading, error, isError };
 };
 
-// Actions export
 export const useExpenseActions = () =>
-	useExpenseStore((state: ExpenseState) => state.actions);
+	useExpenseStore((state) => state.actions);
+
+export default useExpenseStore;
