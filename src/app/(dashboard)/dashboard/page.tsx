@@ -1,11 +1,10 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
-    Trash2,
     ArrowUpCircle,
     ArrowDownCircle,
     Calendar,
@@ -19,11 +18,12 @@ import { useBudgets } from '@/store/useExpenseStore';
 import { useBins } from '@/store/useBinStore';
 import Link from 'next/link';
 import { dateToString } from '@/lib/utils';
+import { Budget } from '@/types/expense';
 
 export default function DashboardPage() {
     const [view, setView] = useState('all');
     const { budgets, isLoading, isError } = useBudgets();
-    const latestBudget = budgets?.[0] ?? {};
+    const latestBudget: Budget = useMemo(() => budgets?.[0] ?? { day: '0', amount: NaN, remaining: NaN, }, [budgets]);
     const { bins } = useBins();
     const recentBins = bins?.slice(0, 5) || [];
 
@@ -87,7 +87,7 @@ export default function DashboardPage() {
                             </CardTitle>
                             {Object.keys(latestBudget).length > 0 && (
                                 <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/expense/${dateToString(latestBudget.day)}`}>
+                                    <Link href={`/expense/${dateToString(latestBudget.day && latestBudget?.day)}`}>
                                         View Details
                                     </Link>
                                 </Button>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                             <div className="text-center py-6">
                                 <p className="text-gray-500 mb-4">No budget set for today</p>
                                 <Button variant="outline" asChild>
-                                    <Link href="/expense/new">Set Budget</Link>
+                                    <Link href="/expense">Set Budget</Link>
                                 </Button>
                             </div>
                         )}
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle className="flex items-center gap-2">
-                                <Trash2 className="h-5 w-5 text-purple-500" />
+                                <FileText className="h-5 w-5 text-purple-500" />
                                 Recent Bins
                             </CardTitle>
                             <Tabs value={view} onValueChange={setView} className="w-[200px]">
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                                         .filter(bin => view === 'all' || (view === 'markdown' && bin.isMarkdown))
                                         .map((bin) => (
                                             <Link
-                                                href={`/bin${bin.uid}`}
+                                                href={`/bin/${bin.uid}`}
                                                 key={bin.id}
                                                 className="block"
                                             >
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-[200px] gap-2">
-                                    <Trash2 className="h-8 w-8 text-gray-400" />
+                                    <FileText className="h-8 w-8 text-gray-400" />
                                     <p className="text-gray-500">No recent bins</p>
                                 </div>
                             )}

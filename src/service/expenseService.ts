@@ -11,6 +11,10 @@ interface ALL_BUDGETS {
 	budgets: Budget[];
 	pagination: Pagination;
 }
+interface BUDGET {
+	success: true;
+	budget: Budget;
+}
 
 interface ADD_EXPENSE {
 	expense: Expense;
@@ -33,7 +37,6 @@ export const expenseApi = {
 			});
 
 			const data: ApiResponse<ALL_BUDGETS> = response.data;
-			console.log(data, 12345)
 			return data.data;
 		} catch (error) {
 			// TODO: Make it better
@@ -43,14 +46,10 @@ export const expenseApi = {
 		}
 	},
 
-	fetchExpenses: async (day: string) => {
+	fetchBudget: async (day: string) => {
 		try {
-			const response = await axios.get("/api/expense", {
-				params: { day },
-			});
-
-			const data: ApiResponse<ALL_EXPENSES> = response.data;
-			console.log(data.data, 8989)
+			const response = await axios.get(`/api/budget/${day}`);
+			const data: ApiResponse<BUDGET> = response.data;
 			return data.data;
 		} catch (error) {
 			// TODO: Make it better
@@ -66,6 +65,23 @@ export const expenseApi = {
 				amount,
 			});
 			const data: ApiResponse<ADD_BUDGET> = response.data;
+			return data.data;
+		} catch (error) {
+			// TODO: Make it better
+			throw new Error(
+				(error as AxiosError<ApiError>)?.response?.data.message
+			);
+		}
+	},
+
+	// EXPENSES
+	fetchExpenses: async (day: string) => {
+		try {
+			const response = await axios.get("/api/expense", {
+				params: { day },
+			});
+
+			const data: ApiResponse<ALL_EXPENSES> = response.data;
 			return data.data;
 		} catch (error) {
 			// TODO: Make it better

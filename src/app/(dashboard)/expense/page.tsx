@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import { TypographyH3 } from "@/components/Typography"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -9,9 +9,10 @@ import { IndianRupeeIcon, Wallet } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import { Budget } from "@/types/expense"
-import { useBudgets, useExpenseActions } from "@/store/useExpenseStore"
+import { useBudget, useBudgets, useExpenseActions } from "@/store/useExpenseStore"
 import { expenseApi } from "@/service/expenseService"
 import { dateToString } from "@/lib/utils"
+import { toast } from "sonner"
 
 
 // Components
@@ -108,23 +109,11 @@ const BudgetTable = ({ budgets, onDayClick }: {
 
 export default function Dashboard() {
     const { budgets } = useBudgets()
-    const { addBudget, updateBudget } = useExpenseActions()
+    const { budget: todayBudget } = useBudget(dateToString(new Date().toISOString()))
+    const { addBudget, updateBudget, removeBudget } = useExpenseActions()
     const router = useRouter()
 
 
-    const todayBudget = useMemo(() => {
-        const today = new Date()
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-
-        return budgets?.find(budget => {
-            if (budget.day) {
-                const budgetDate = new Date(budget.day)
-                return budgetDate >= startOfDay && budgetDate < endOfDay
-            }
-            return false
-        })
-    }, [budgets])
 
     // TODO [OPTIMIZE]
     const handleAddTodayBudget = async (amount: number) => {
@@ -134,8 +123,11 @@ export default function Dashboard() {
             .then((data) => updateBudget(-1, data.budget))
             .catch(err => {
                 //TODO: 
+                removeBudget(-1)
                 console.log(err)
+                toast('Unable to add budget, try again!')
             })
+        // .finally(() => ())
     }
 
     const handleNavigateToExpensePage = useCallback((day: string) => {
@@ -167,7 +159,7 @@ export default function Dashboard() {
             </Card>
 
             <BudgetTable
-                budgets={budgets}
+                budgets={budgets ?? []}
                 onDayClick={handleNavigateToExpensePage}
             />
         </div>

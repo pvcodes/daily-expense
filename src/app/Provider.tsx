@@ -7,6 +7,7 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 
+
 const Providers = ({ children }: { children: ReactNode }) => {
     const [queryClient] = useState(() => new QueryClient());
 
@@ -17,7 +18,6 @@ const Providers = ({ children }: { children: ReactNode }) => {
                     {children}
                 </SidebarProvider>
                 <Toaster />
-                {/* <ReactQueryDevtools initialIsOpen={false} /> */}
             </QueryClientProvider>
         </SessionProvider>
     );

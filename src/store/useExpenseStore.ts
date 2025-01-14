@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { produce } from "immer";
 import { expenseApi } from "@/service/expenseService";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Budget, Expense } from "@/types/expense";
 import { dateToString } from "@/lib/utils";
@@ -41,13 +41,6 @@ export const useExpenseStore = create<ExpenseState>()(
 			(set) => ({
 				expenses: {},
 				budgets: [],
-				isLoading: false,
-				error: null,
-				info: {
-					totalBudgets: null,
-					todayBudgetLeft: null,
-					totalExpense: [],
-				},
 				actions: {
 					// Expense actions
 					setExpenses: (day: string, expenses: Partial<Expense>[]) =>
@@ -121,8 +114,6 @@ export const useExpenseStore = create<ExpenseState>()(
 						set(() => ({
 							expenses: {},
 							budgets: [],
-							isLoading: false,
-							error: null,
 						})),
 				},
 			}),
@@ -142,24 +133,56 @@ export const useExpenseStore = create<ExpenseState>()(
 
 // State exports
 export const useBudgets = (pageNo: number = 1, limit: number = 10) => {
-	const budgets = useExpenseStore((state) => state.budgets);
+	const queryClient = useQueryClient(); // Get access to queryClient
 	const { setBudgets } = useExpenseActions();
 	const { data, isLoading, error, isError } = useQuery({
 		queryKey: ["budgets", `${pageNo}-${limit}`],
-		queryFn: () => expenseApi.fetchBudgets(pageNo, limit),
+		queryFn: async () => {
+			const result = await expenseApi.fetchBudgets(pageNo, limit);
+
+			result?.budgets?.map((budget) => {
+				queryClient.setQueryData(
+					["budgets", dateToString(budget.day)],
+					budget
+				);
+			});
+
+			// console.log(result.budgets)
+
+			return result.budgets;
+		},
 		staleTime: 300000,
 		retry: 1,
 		retryDelay: 120000,
 	});
 	useEffect(() => {
-		if (data?.budgets) setBudgets(data.budgets);
+		console.log(data, 45678);
+		if (data) {
+			console.log("data", 45678);
+			setBudgets(data);
+		}
 	}, [data, setBudgets]);
 
-	return { budgets, isLoading, error, isError };
+	return { budgets: data, isLoading, error, isError };
+};
+
+export const useBudget = (day: string) => {
+	// fetchBudget
+	const { data, isLoading, error, isError } = useQuery({
+		queryKey: ["budgets", day],
+		queryFn: async () => {
+			const data = await expenseApi.fetchBudget(day);
+			console.log(data.budget, 99999);
+			return data.budget;
+		},
+		staleTime: 300000,
+		refetchInterval: 20000,
+	});
+	return { budget: data, isLoading, error, isError };
 };
 
 export const useExpenses = (day: string) => {
-	const expenses = useExpenseStore((state) => state.expenses);
+	const expenses = useExpenseStore((state: ExpenseState) => state.expenses);
 	const { setExpenses } = useExpenseActions();
 	const { data, isLoading, error, isError } = useQuery({
 		queryKey: ["expenses", `${day}`],
@@ -177,4 +200,4 @@ export const useExpenses = (day: string) => {
 
 // Actions export
 export const useExpenseActions = () =>
-	useExpenseStore((state) => state.actions);
+	useExpenseStore((state: ExpenseState) => state.actions);

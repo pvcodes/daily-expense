@@ -24,8 +24,6 @@ const useBinStore = create<BinState>()(
 		persist(
 			(set) => ({
 				bins: [], // Updated from notes to bins
-				isLoading: false,
-				error: null,
 				actions: {
 					setBins: (bins: Bin[]) => set(() => ({ bins })),
 					addBin: (bin: Bin) =>
@@ -44,7 +42,7 @@ const useBinStore = create<BinState>()(
 					removeBin: (
 						binUid: string // Updated from removeNote to removeBin
 					) =>
-						set((state) => ({
+						set((state : BinState) => ({
 							bins: state.bins.filter(
 								// Updated from notes to bins
 								(bin) => bin.uid !== binUid
@@ -70,8 +68,6 @@ const useBinStore = create<BinState>()(
 					resetState: () =>
 						set(() => ({
 							bins: [], // Updated from notes to bins
-							isLoading: false,
-							error: null,
 						})),
 				},
 			}),
@@ -92,7 +88,7 @@ const useBinStore = create<BinState>()(
 // export const useBins = () => useBinStore((state) => state.bins); // Updated from useNotes to useBins
 
 export const useBins = (pageNo: number = 1, limit: number = 10) => {
-	const bins = useBinStore((state) => state.bins);
+	const bins = useBinStore((state: BinState) => state.bins);
 	const { setBins } = useBinActions();
 	const { data, isLoading, error, isError } = useQuery({
 		queryKey: ["bins", `${pageNo}-${limit}`],
@@ -108,6 +104,6 @@ export const useBins = (pageNo: number = 1, limit: number = 10) => {
 };
 
 // Actions export
-export const useBinActions = () => useBinStore((state) => state.actions);
+export const useBinActions = () => useBinStore((state: BinState) => state.actions);
 
 export default useBinStore;

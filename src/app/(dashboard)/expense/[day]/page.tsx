@@ -9,9 +9,8 @@ import { PlusCircle, Calendar, IndianRupeeIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { TypographyMuted } from '@/components/Typography'
 import { Expense } from '@/types/expense'
-import { useExpenseActions, useBudgets, useExpenses } from '@/store/useExpenseStore'
+import { useExpenseActions, useExpenses, useBudget } from '@/store/useExpenseStore'
 import { expenseApi } from '@/service/expenseService'
-import { dateToString } from '@/lib/utils'
 import { toast } from 'sonner'
 
 
@@ -113,11 +112,7 @@ export default function ExpensePage() {
     const pathname = usePathname()
     const day = pathname.split('/').pop() as string
     const { expenses: currDayExpenses } = useExpenses(day)
-    const { budgets } = useBudgets()
-    const currBudget = useMemo(() => {
-        console.log('useMemo chuda')
-        return budgets?.find(budget => dateToString(budget.day) === day)
-    }, [budgets, day])
+    const { budget: currBudget } = useBudget(day)
     const { addExpense, updateExpense } = useExpenseActions()
 
 

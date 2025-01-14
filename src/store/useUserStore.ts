@@ -31,6 +31,8 @@ const useUserStore = create<UserState>()(
 							resetExpenseState();
 							resetUiState();
 							resetBinState();
+							localStorage.removeItem('bin-storage');
+							localStorage.removeItem('expense-storage');
 							return { user: null };
 						}),
 				},

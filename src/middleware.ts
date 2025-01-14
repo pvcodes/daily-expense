@@ -104,6 +104,6 @@ export const config = {
 		"/expense/:path*",
 		"/api/((?!user$|bin/).*)",
 		"/bin/",
-		
+		"/dashboard",
 	],
 };
