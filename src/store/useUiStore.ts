@@ -3,8 +3,11 @@ import { devtools, persist } from "zustand/middleware";
 
 interface UiState {
 	hasShowNoti: boolean;
+	isSidebarOpen: boolean;
 	actions: {
 		setHasShowNoti: () => void;
+		setSidebarOpen: (isOpen: boolean) => void;
+		resetState: () => void;
 	};
 }
 
@@ -13,14 +16,21 @@ const useUiStore = create<UiState>()(
 		persist(
 			(set) => ({
 				hasShowNoti: false,
+				isSidebarOpen: false,
 				actions: {
 					setHasShowNoti: () => set({ hasShowNoti: true }),
+					setSidebarOpen: (isOpen: boolean) =>
+						set({ isSidebarOpen: isOpen }),
+
+					resetState: () =>
+						set({ hasShowNoti: false, isSidebarOpen: false }),
 				},
 			}),
 			{
 				name: "ui-storage",
 				partialize: (state: UiState) => ({
 					hasShowNoti: state.hasShowNoti,
+					sidebarOpen: state.isSidebarOpen,
 				}),
 			}
 		),
@@ -31,8 +41,7 @@ const useUiStore = create<UiState>()(
 );
 
 // State exports
-export const useHasShowNotification = () =>
-	useUiStore((state) => state.hasShowNoti);
+export default useUiStore;
 
 // Actions export
 export const useUiActions = () => useUiStore((state) => state.actions);

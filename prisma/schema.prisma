@@ -51,7 +51,7 @@ model Budget {
 model Bin {
   id         Int      @id @default(autoincrement())
   uid        String   @unique
-  name       String   @unique
+  name       String
   content    String
   userId     Int
   isMarkdown Boolean  @default(false)

@@ -2,19 +2,19 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { produce } from "immer";
 import { Bin } from "@/types/bin";
+import { useQuery } from "@tanstack/react-query";
+import { binApi } from "@/service/binService";
+import { useEffect } from "react";
 
 interface BinState {
-	bins: Partial<Bin>[]; // Updated from notes to bins
-	isLoading: boolean;
-	error: string | null;
+	bins: Bin[]; // Updated from notes to bins
+	//TODO no user bins, when user fetch when he is not authenticated
 
 	actions: {
-		setBins: (bins: Partial<Bin>[]) => void; // Updated from setNotes to setBins
-		addBin: (bin: Partial<Bin>) => void; // Updated from addNote to addBin
+		setBins: (bins: Bin[]) => void; // Updated from setNotes to setBins
+		addBin: (bin: Bin) => void; // Updated from addNote to addBin
 		removeBin: (binUid: string) => void; // Updated from removeNote to removeBin
-		updateBin: (binUid: string, updatedBin: Partial<Bin>) => void; // Updated from updateNote to updateBin
-		setIsLoading: (loading: boolean) => void;
-		setError: (error: string | null) => void;
+		updateBin: (binUid: string, updatedBin: Bin) => void; // Updated from updateNote to updateBin
 		resetState: () => void;
 	};
 }
@@ -27,18 +27,18 @@ const useBinStore = create<BinState>()(
 				isLoading: false,
 				error: null,
 				actions: {
-					setBins: (
-						bins: Partial<Bin>[] // Updated from setNotes to setBins
-					) =>
-						set(() => ({
-							bins, // Updated from notes to bins
-						})),
-					addBin: (
-						bin: Partial<Bin> // Updated from addNote to addBin
-					) =>
+					setBins: (bins: Bin[]) => set(() => ({ bins })),
+					addBin: (bin: Bin) =>
 						set(
 							produce((state: BinState) => {
-								state.bins.unshift(bin); // Updated from notes to bins
+								console.log(bin);
+								const existingBin = state.bins.find(
+									(b) => b.uid === bin.uid
+								);
+								console.log(existingBin);
+								if (!existingBin) {
+									state.bins.unshift(bin);
+								}
 							})
 						),
 					removeBin: (
@@ -52,7 +52,7 @@ const useBinStore = create<BinState>()(
 						})),
 					updateBin: (
 						binUid: string,
-						updatedBin: Partial<Bin> // Updated from updateNote to updateBin
+						updatedBin: Bin // Updated from updateNote to updateBin
 					) =>
 						set(
 							produce((state: BinState) => {
@@ -67,14 +67,6 @@ const useBinStore = create<BinState>()(
 								}
 							})
 						),
-					setIsLoading: (loading: boolean) =>
-						set(() => ({
-							isLoading: loading,
-						})),
-					setError: (error: string | null) =>
-						set(() => ({
-							error,
-						})),
 					resetState: () =>
 						set(() => ({
 							bins: [], // Updated from notes to bins
@@ -86,9 +78,7 @@ const useBinStore = create<BinState>()(
 			{
 				name: "bin-storage",
 				partialize: (state: BinState) => ({
-					bins: state.bins, // Updated from notes to bins
-					isLoading: state.isLoading,
-					error: state.error,
+					bins: state.bins,
 				}),
 			}
 		),
@@ -99,9 +89,25 @@ const useBinStore = create<BinState>()(
 );
 
 // State exports
-export const useBins = () => useBinStore((state) => state.bins); // Updated from useNotes to useBins
-export const useIsLoading = () => useBinStore((state) => state.isLoading);
-export const useError = () => useBinStore((state) => state.error);
+// export const useBins = () => useBinStore((state) => state.bins); // Updated from useNotes to useBins
+
+export const useBins = (pageNo: number = 1, limit: number = 10) => {
+	const bins = useBinStore((state) => state.bins);
+	const { setBins } = useBinActions();
+	const { data, isLoading, error, isError } = useQuery({
+		queryKey: ["bins", `${pageNo}-${limit}`],
+		queryFn: () => binApi.fetchBins(pageNo, limit),
+		staleTime: 300000,
+	});
+	useEffect(() => {
+		console.log(data, 1231);
+		if (data?.bins) setBins(data?.bins);
+	}, [data, setBins]);
+
+	return { bins, isLoading, error, isError };
+};
 
 // Actions export
 export const useBinActions = () => useBinStore((state) => state.actions);
+
+export default useBinStore;

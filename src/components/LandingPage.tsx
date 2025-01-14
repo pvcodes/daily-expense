@@ -8,8 +8,8 @@ import { signIn } from 'next-auth/react';
 const LandingPage = () => {
 
     return (
-        <div className="min-h-screen bg-white">
-
+        <div className="w-full min-h-screen">
+           
             {/* Hero Section with Interactive Demo */}
             <header className="pt-32 pb-16 px-4">
                 <div className="max-w-6xl mx-auto">
@@ -102,7 +102,7 @@ const LandingPage = () => {
             </section>
 
             {/* Floating CTA */}
-            <div className="fixed bottom-8 right-8 z-50">
+            {/* <div className="fixed bottom-8 right-8 z-50">
                 <Button
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300"
@@ -110,7 +110,7 @@ const LandingPage = () => {
                 >
                     Try It Free
                 </Button>
-            </div>
+            </div> */}
         </div>
     );
 };

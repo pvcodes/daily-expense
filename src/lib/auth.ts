@@ -38,6 +38,7 @@ export const authOptions = {
 							id: user.id,
 							email: user.email,
 							name: user.name,
+							image: user.img_url,
 						};
 					}
 				} catch (error) {
@@ -51,6 +52,7 @@ export const authOptions = {
 		async session({ session, token }) {
 			if (session?.user) {
 				session.user.id = parseInt(token.sub as string, 10);
+				session.user.image = token.picture;
 			}
 			return session;
 		},

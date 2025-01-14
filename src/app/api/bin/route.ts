@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
 		const limit =
 			(parseInt(req.nextUrl.searchParams.get("limit") as string), 10);
 
+		console.log(page, limit, 10);
+
 		const offset = (page - 1) * limit;
 
 		const [bins, total] = await Promise.all([
@@ -57,7 +59,7 @@ export async function GET(req: NextRequest) {
 			},
 		});
 	} catch (error) {
-		console.error("Budget fetch error:", error);
+		console.error("Budget fetch error:", JSON.stringify(error));
 
 		return NextResponse.json(
 			{
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
 		const { user } = (await getServerSession(authOptions)) as Session;
 		const { name, content, uid, isMarkdown } = await req.json();
 
-		console.log({ name, content, user });
+		console.log({ name, content, user , isMarkdown});
 
 		const bin = await db.bin.create({
 			data: {

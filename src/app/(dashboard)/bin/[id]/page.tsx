@@ -10,12 +10,14 @@ import {
     Clock,
     Check,
     Trash2,
-    AlertCircle
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
-import { notFound, usePathname, useRouter } from 'next/navigation';
-import { useBins } from '@/store/useBinStore';
+import { usePathname, useRouter } from 'next/navigation';
+import { useBinActions, useBins } from '@/store/useBinStore';
 import { Bin } from '@/types/bin';
 import { format } from 'date-fns';
+import copy from 'clipboard-copy';
 
 import {
     Tooltip,
@@ -23,8 +25,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import copy from 'clipboard-copy';
-import { useBinOperations } from '@/service/binService';
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,63 +38,107 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+// import { useBinOperations } from '@/service/binService';
+import { useUser } from '@/store/useUserStore';
+import { binApi } from '@/service/binService';
+import { toast } from 'sonner';
+import { TypographyMuted } from '@/components/Typography';
 
 const BinEditor = () => {
-    const router = useRouter()
+    const user = useUser();
+    const router = useRouter();
     const pathname = usePathname();
-    const bin_uid: string = pathname.split('/').pop() ?? '';
-    const { updateBin, deleteBin } = useBinOperations();
+    // const { updateBin, deleteBin, fetchSingleBin } = useBinOperations();
+    const { bins } = useBins()
+    const { addBin, updateBin, removeBin } = useBinActions()
 
-    const [bin, setBin] = useState<Partial<Bin>>(useBins().find(binS => bin_uid && binS.uid === bin_uid) || {});
+    const [bin, setBin] = useState<Bin>();
+    const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [saving, setSaving] = useState(false);
-    // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    // const [isError, setIsError] = useState(false);
 
     useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
+        const bin_uid = pathname.split('/').pop()
+        if (!bin_uid) return
+        const bin = bins.find(bin => bin.uid === bin_uid)
+        if (bin) {
+            setBin(bin)
+            setIsLoading(false)
+            return
+        }
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasUnsavedChanges]);
+        binApi.fetchSingleBin(bin_uid)
+            .then((bin) => {
+                console.log(bin, 12313)
+                setBin(bin)
+                addBin(bin)
+            }).catch(() => {
+                router.back()
+                toast('Something went wrong. Please try later')
+                // return notFound()
+            })
+            .finally(() => setIsLoading(false))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
 
     const handleUpdateBin = async () => {
         setSaving(true);
-        if (bin.uid) {
-            await updateBin(bin.uid, bin);
-            setHasUnsavedChanges(false);
+        if (bin?.uid && hasUnsavedChanges) {
+            updateBin(bin.uid, { ...bin, updatedAt: new Date() })
+            binApi.updateBin(bin).then((binResponse) => {
+                updateBin(bin.uid, binResponse)
+                setBin({ ...bin, updatedAt: new Date() })
+                toast('Changes saved')
+            }).catch(() => {
+                toast('Something went wrong. Try again')
+            }).finally(() => {
+                setHasUnsavedChanges(false);
+                setSaving(false);
+            })
         }
-        setSaving(false);
+        //     await updateBin(bin.uid, bin);
     };
 
     const handleDelete = async () => {
-        await deleteBin(bin_uid).then(() => router.back())
-        // setShowDeleteDialog(false);
+        if (bin?.uid) {
+            removeBin(bin.uid)
+            binApi.deleteBin(bin.uid).then(() => {
+                router.push('/bin')
+                toast('Deleted!')
+            }).catch(() => {
+                toast('Something went wrong. Try again')
+            })
+        }        // await deleteBin(bin_uid).then(() => router.back());
     };
 
     const handleShare = async () => {
-        const url = `${window.location.origin}/bin/${bin.uid}`;
-        await copy(url)
+        const url = `${window.location.origin}/bin/${bin?.uid}`;
+        await copy(url);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+        toast('Link Copied!')
     };
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setBin(prev => ({ ...prev, content: e.target.value }));
+    const handleBinChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>, key: string) => {
+        setBin(prev => {
+            if (!prev) return undefined;
+            return { ...prev, [key]: e.target.value } as Bin;
+        });
         setHasUnsavedChanges(true);
     };
 
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setBin(prev => ({ ...prev, name: e.target.value }));
-        setHasUnsavedChanges(true);
-    };
+    if (isLoading) {
+        return (
+            <div className="w-full h-[70vh] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+            </div>
+        );
+    }
 
-    if (Object.keys(bin).length === 0) return notFound();
+    if (!bin?.uid) return null;
 
     return (
         <div className="w-full max-w-4xl mx-auto p-4">
@@ -102,9 +147,10 @@ const BinEditor = () => {
                     <div className="w-3/5">
                         <Input
                             value={bin.name}
-                            onChange={handleTitleChange}
+                            onChange={(e) => handleBinChange(e, 'name')}
                             className="text-xl font-medium border-0 bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                             placeholder="Untitled Note"
+                            disabled={user?.id !== bin.userId}
                         />
                     </div>
 
@@ -122,7 +168,7 @@ const BinEditor = () => {
                             )}
                         </Button>
                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                            <AlertDialogTrigger asChild disabled={user?.id !== bin.userId}>
                                 <Button variant="outline"><Trash2 /></Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -130,7 +176,7 @@ const BinEditor = () => {
                                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         This action cannot be undone. This will permanently delete your
-                                        account and remove your data from our servers.
+                                        note and remove it from our servers.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -143,21 +189,31 @@ const BinEditor = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
+
+                    {hasUnsavedChanges && (
+                        <div className='m-0 p-0 flex justify-end'>
+                            <TypographyMuted className='flex items-center' >
+                                <AlertCircle size='16' className='mr-1' />
+                                Unsaved changes
+                            </TypographyMuted>
+                        </div>
+                    )}
                     <Textarea
                         value={bin.content}
-                        onChange={handleContentChange}
+                        onChange={(e) => handleBinChange(e, 'content')}
                         className="min-h-[400px] p-4 font-mono text-base leading-relaxed border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                         placeholder="Start writing your content here..."
+                        disabled={user?.id !== bin.userId}
                     />
 
                     <div className="flex items-center justify-between pt-2">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <div className="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                                    <TypographyMuted className="flex items-center  hover:text-gray-700 transition-colors duration-200">
                                         <Clock className="w-4 h-4 mr-2" />
                                         {format(new Date(bin?.updatedAt ?? 0), 'MMMM d, yyyy h:mm a')}
-                                    </div>
+                                    </TypographyMuted>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                                     <p>Last updated</p>
@@ -165,17 +221,11 @@ const BinEditor = () => {
                             </Tooltip>
                         </TooltipProvider>
 
-                        {hasUnsavedChanges && (
-                            <span className="text-amber-600 text-sm flex items-center mr-3">
-                                <AlertCircle className="w-4 h-4 mr-1" />
-                                Unsaved changes
-                            </span>
-                        )}
 
                         <Button
                             onClick={handleUpdateBin}
                             className="bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
-                            disabled={saving || !hasUnsavedChanges}
+                            disabled={saving || !hasUnsavedChanges || user?.id !== bin.userId}
                         >
                             {saving ? (
                                 <span className="flex items-center">
@@ -185,15 +235,14 @@ const BinEditor = () => {
                             ) : (
                                 <>
                                     <Save className="w-4 h-4 mr-2" />
-                                    Save Changes
+                                    Save
                                 </>
                             )}
                         </Button>
                     </div>
                 </CardContent>
             </Card>
-
-        </div>
+        </div >
     );
 };
 

@@ -1,21 +1,20 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { User, Expense, Budget } from "@prisma/client";
 import { produce } from "immer";
+import { expenseApi } from "@/service/expenseService";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { Budget, Expense } from "@/types/expense";
+import { dateToString } from "@/lib/utils";
 
 interface ExpenseState {
-	user: Partial<User> | null;
 	expenses: Record<string, Partial<Expense>[]>;
-	budgets: Partial<Budget>[];
-	isLoading: boolean;
-	error: string | null;
+	budgets: Budget[];
 
 	actions: {
-		setUser: (user: Partial<User> | null) => void;
-
 		// Expense actions
-		setExpenses: (day: string, expenses: Partial<Expense>[]) => void;
-		addExpense: (day: string, expense: Partial<Expense>) => void;
+		setExpenses: (day: string, expenses: Expense[]) => void;
+		addExpense: (day: string, expense: Expense) => void;
 		removeExpense: (day: string, expenseId: number) => void;
 		updateExpense: (
 			day: string,
@@ -24,27 +23,23 @@ interface ExpenseState {
 		) => void;
 
 		// Budget actions
-		setBudgets: (budgets: Partial<Budget>[]) => void;
-		addBudget: (budget: Partial<Budget>) => void;
+		setBudgets: (budgets: Budget[]) => void;
+		addBudget: (budget: Budget) => void;
 		removeBudget: (budgetId: number) => void;
 		updateBudget: (
 			budgetId: number,
 			updatedBudget: Partial<Budget>
 		) => void;
 
-		setIsLoading: (loading: boolean) => void;
-		setError: (error: string | null) => void;
-
 		resetState: () => void;
 	};
 }
 
-const useExpenseStore = create<ExpenseState>()(
+export const useExpenseStore = create<ExpenseState>()(
 	devtools(
 		persist(
 			(set) => ({
-				user: null,
-				expenses: {}, // Initialize as an empty object
+				expenses: {},
 				budgets: [],
 				isLoading: false,
 				error: null,
@@ -54,26 +49,20 @@ const useExpenseStore = create<ExpenseState>()(
 					totalExpense: [],
 				},
 				actions: {
-					setUser: (user: Partial<User> | null) =>
-						set(() => ({
-							user: user,
-						})),
-
 					// Expense actions
 					setExpenses: (day: string, expenses: Partial<Expense>[]) =>
 						set((state) => ({
 							expenses: { ...state.expenses, [day]: expenses },
 						})),
-					addExpense: (day: string, expense: Partial<Expense>) =>
+					addExpense: (day: string, expense: Expense) =>
 						set(
 							produce((state: ExpenseState) => {
-								// expenses: {
-								// 	...state.expenses,
-								// 	[day]: [
-								// 		expense,
-								// 		...(state.expenses[day] || []),
-								// 	],
-								// },
+								const budgetIndex = state.budgets.findIndex(
+									(budget) => dateToString(budget.day) === day
+								);
+								state.budgets[budgetIndex].remaining -=
+									expense.amount;
+
 								state.expenses[day].unshift(expense);
 							})
 						),
@@ -103,11 +92,8 @@ const useExpenseStore = create<ExpenseState>()(
 						})),
 
 					// Budget actions
-					setBudgets: (budgets: Partial<Budget>[]) =>
-						set(() => ({
-							budgets,
-						})),
-					addBudget: (budget: Partial<Budget>) =>
+					setBudgets: (budgets: Budget[]) => set(() => ({ budgets })),
+					addBudget: (budget: Budget) =>
 						set(
 							produce((state: ExpenseState) => {
 								state.budgets.unshift(budget);
@@ -131,18 +117,8 @@ const useExpenseStore = create<ExpenseState>()(
 							),
 						})),
 
-					// UI state actions
-					setIsLoading: (loading: boolean) =>
-						set(() => ({
-							isLoading: loading,
-						})),
-					setError: (error: string | null) =>
-						set(() => ({
-							error,
-						})),
 					resetState: () =>
 						set(() => ({
-							user: null,
 							expenses: {},
 							budgets: [],
 							isLoading: false,
@@ -153,11 +129,8 @@ const useExpenseStore = create<ExpenseState>()(
 			{
 				name: "expense-storage",
 				partialize: (state: ExpenseState) => ({
-					user: state.user,
 					expenses: state.expenses,
 					budgets: state.budgets,
-					isLoading: state.isLoading,
-					error: state.error,
 				}),
 			}
 		),
@@ -168,11 +141,39 @@ const useExpenseStore = create<ExpenseState>()(
 );
 
 // State exports
-export const useUser = () => useExpenseStore((state) => state.user);
-export const useExpenses = () => useExpenseStore((state) => state.expenses);
-export const useBudgets = () => useExpenseStore((state) => state.budgets);
-export const useIsLoading = () => useExpenseStore((state) => state.isLoading);
-export const useError = () => useExpenseStore((state) => state.error);
+export const useBudgets = (pageNo: number = 1, limit: number = 10) => {
+	const budgets = useExpenseStore((state) => state.budgets);
+	const { setBudgets } = useExpenseActions();
+	const { data, isLoading, error, isError } = useQuery({
+		queryKey: ["budgets", `${pageNo}-${limit}`],
+		queryFn: () => expenseApi.fetchBudgets(pageNo, limit),
+		staleTime: 300000,
+		retry: 1,
+		retryDelay: 120000,
+	});
+	useEffect(() => {
+		if (data?.budgets) setBudgets(data.budgets);
+	}, [data, setBudgets]);
+
+	return { budgets, isLoading, error, isError };
+};
+
+export const useExpenses = (day: string) => {
+	const expenses = useExpenseStore((state) => state.expenses);
+	const { setExpenses } = useExpenseActions();
+	const { data, isLoading, error, isError } = useQuery({
+		queryKey: ["expenses", `${day}`],
+		queryFn: () => expenseApi.fetchExpenses(day),
+		staleTime: 300000,
+		refetchInterval: 20000,
+	});
+	useEffect(() => {
+		if (data?.expenses) setExpenses(day, data?.expenses);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [data, setExpenses]);
+
+	return { expenses: expenses[day], isLoading, error, isError };
+};
 
 // Actions export
 export const useExpenseActions = () =>

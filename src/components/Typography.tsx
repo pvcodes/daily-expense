@@ -72,7 +72,7 @@ function TypographySmall({ children, className }: { children: ReactNode, classNa
 
 function TypographyMuted({ children, className }: { children: ReactNode, className?: string }) {
     return (
-        <small className={cn("text-sm text-muted-foreground", className)}>{children}</small>
+        <small className={cn("text-sm text-muted-foreground text-gray-500", className)}>{children}</small>
     )
 
 }

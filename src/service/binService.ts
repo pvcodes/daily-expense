@@ -1,15 +1,24 @@
-import { useBinActions } from "@/store/useBinStore";
+import { ApiResponse, Pagination } from "@/types/api";
 import { Bin } from "@/types/bin";
 import axios from "axios";
-import { useEffect } from "react";
+
+interface ALL_BINS {
+	bins: Bin[];
+	pagination: Pagination;
+}
 
 export const binApi = {
-	fetchBins: async (page = 1, limit = 10) => {
+	fetchBins: async (page: number, limit: number) => {
 		try {
+			console.log(page, limit, 12313213);
 			const response = await axios.get("/api/bin", {
 				params: { page, limit },
 			});
-			return response.data.data.bins;
+			const data: ApiResponse<ALL_BINS> = response.data;
+			console.log(data, 12314);
+
+			// TODO: pagination data also come
+			return data.data;
 		} catch (error) {
 			throw error;
 		}
@@ -40,66 +49,12 @@ export const binApi = {
 			throw error;
 		}
 	},
-};
-
-export const useFetchBins = () => {
-	const { setBins, setIsLoading, setError } = useBinActions();
-
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setIsLoading(true);
-				const budgets = await binApi.fetchBins();
-				setBins(budgets);
-			} catch (error) {
-				console.error("Failed to fetch bins:", error);
-				setError("Failed to fetch bins");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		fetchData();
-	}, [setBins, setIsLoading, setError]);
-};
-
-export const useBinOperations = () => {
-	const {
-		addBin: addBinToStore,
-		updateBin: updateBinInStore,
-		removeBin: removeBinInStore,
-	} = useBinActions();
-
-	const addBin = async (bin: Partial<Bin> & { uid: string }) => {
+	fetchSingleBin: async (uid: string) => {
 		try {
-			addBinToStore(bin);
-			await binApi.addBin(bin);
+			const response = await axios.get(`/api/bin/${uid}`);
+			return response.data.data.bin as Bin;
 		} catch (error) {
-			console.error("Failed to add bin:", error);
-			// TODO: Add rollback logic here if needed
 			throw error;
 		}
-	};
-
-	const updateBin = async (uid: string, bin: Partial<Bin>) => {
-		try {
-			updateBinInStore(uid, bin);
-			await binApi.updateBin(bin);
-		} catch (error) {
-			// TODO: Add rollback logic here if needed
-			throw error;
-		}
-	};
-
-	const deleteBin = async (uid: string) => {
-		try {
-			removeBinInStore(uid);
-			await binApi.deleteBin(uid);
-		} catch (error) {
-			// TODO: Add rollback logic here if needed
-			throw error;
-		}
-	};
-
-	return { addBin, updateBin, deleteBin };
+	},
 };

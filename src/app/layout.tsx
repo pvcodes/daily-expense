@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AppNavbar from "@/components/app-navbar";
 import { Session } from "next-auth";
 import Providers from "@/app/Provider";
 
@@ -30,11 +29,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased p-2 max-w-2xl mx-auto space-y-6 lg:w-11/12`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <AppNavbar />
-          {children}
+          {/* <AppSidebar /> */}
+          {/* <div className="w-full"> */}
+            {children}
+          {/* </div> */}
         </Providers>
       </body>
     </html>

@@ -1,16 +1,17 @@
 'use client'
 
 import { useCallback, useMemo, useState } from "react"
-import { TypographyH3 } from "./Typography"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
-import { useBudgets } from "@/store/useExpenseStore"
+import { TypographyH3 } from "@/components/Typography"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { IndianRupeeIcon, Wallet } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { Budget } from "@prisma/client"
-import { useFetchBudgets, useBudgetOperations } from "@/service/expenseService"
+import { Budget } from "@/types/expense"
+import { useBudgets, useExpenseActions } from "@/store/useExpenseStore"
+import { expenseApi } from "@/service/expenseService"
+import { dateToString } from "@/lib/utils"
 
 
 // Components
@@ -63,7 +64,7 @@ const BudgetTable = ({ budgets, onDayClick }: {
     budgets: Partial<Budget>[],
     onDayClick: (day: string) => void
 }) => {
-    if (!budgets.length) {
+    if (!budgets?.length) {
         return (
             <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg">
                 No budgets found. Set your first budget!
@@ -72,7 +73,7 @@ const BudgetTable = ({ budgets, onDayClick }: {
     }
 
     return (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border mt-2">
             <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-t-lg text-sm font-medium text-gray-500">
                 <div>Date</div>
                 <div className="text-right">Budget</div>
@@ -106,11 +107,9 @@ const BudgetTable = ({ budgets, onDayClick }: {
 }
 
 export default function Dashboard() {
-    const { addBudget } = useBudgetOperations()
-    const budgets = useBudgets()
+    const { budgets } = useBudgets()
+    const { addBudget, updateBudget } = useExpenseActions()
     const router = useRouter()
-
-    useFetchBudgets()
 
 
     const todayBudget = useMemo(() => {
@@ -118,7 +117,7 @@ export default function Dashboard() {
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
 
-        return budgets.find(budget => {
+        return budgets?.find(budget => {
             if (budget.day) {
                 const budgetDate = new Date(budget.day)
                 return budgetDate >= startOfDay && budgetDate < endOfDay
@@ -127,21 +126,24 @@ export default function Dashboard() {
         })
     }, [budgets])
 
+    // TODO [OPTIMIZE]
     const handleAddTodayBudget = async (amount: number) => {
         if (!amount) return
-        try {
-            await addBudget(amount)
-        } catch (error) {
-            console.error('Failed to add budget:', error)
-        }
+        addBudget({ day: new Date().toISOString(), amount, remaining: amount, id: -1 })
+        expenseApi.addBudget(amount)
+            .then((data) => updateBudget(-1, data.budget))
+            .catch(err => {
+                //TODO: 
+                console.log(err)
+            })
     }
 
     const handleNavigateToExpensePage = useCallback((day: string) => {
-        router.push(`/expense/${new Date(day).toLocaleDateString('en-CA')}`)
+        router.push(`/expense/${dateToString(day)}`)
     }, [router])
 
     return (
-        <div className="max-w-2xl mx-auto p-4 space-y-6">
+        <div className="p-4">
             <Card className="bg-gradient-to-br from-blue-50 to-purple-50">
                 <CardContent className="pt-6">
                     <div className="space-y-4">

@@ -1,87 +1,47 @@
-'use client'
+// import { useCallback, useEffect, useState } from "react"
+// import {
+//     NavigationMenu,
+//     NavigationMenuItem,
+//     NavigationMenuList,
+// } from "@/components/ui/navigation-menu"
+// import { Button } from "./ui/button"
+// import { useRouter } from "next/navigation"
+// import { signIn, signOut, useSession } from "next-auth/react"
+// import { useUser, useExpenseActions } from "@/store/useExpenseStore"
+// import { ChevronLeft, ChevronRight, Terminal, X } from "lucide-react"
+// import { Alert, AlertDescription, } from "@/components/ui/alert"
+// import { useHasShowNotification, useUiActions } from "@/store/useUiStore"
 
-import { useCallback, useEffect, useState } from "react"
-import {
-    NavigationMenu,
-    NavigationMenuItem,
-    NavigationMenuList,
-} from "@/components/ui/navigation-menu"
-import { TypographyP } from "@/components/Typography"
-import { Button } from "./ui/button"
-import { useRouter } from "next/navigation"
-import { signIn, signOut, useSession } from "next-auth/react"
-import { useUser, useExpenseActions } from "@/store/useExpenseStore"
-import { ChevronLeft, ChevronRight, Terminal, X } from "lucide-react"
-import { Alert, AlertDescription, } from "@/components/ui/alert"
+// TODO: Clear the clutter
+
 import Link from "next/link"
-import { useHasShowNotification, useUiActions } from "@/store/useUiStore"
-
-
-// Custom hook to handle user data synchronization
-const useUserSync = () => {
-    const { status, data: sessionData } = useSession()
-    const user = useUser()
-    const { setUser } = useExpenseActions()
-
-    useEffect(() => {
-        if (status === 'authenticated' && !user && sessionData?.user) {
-            const userData = {
-                ...sessionData.user,
-                email: sessionData.user.email ?? undefined
-            }
-            setUser(userData)
-        }
-    }, [status, sessionData?.user, setUser, user])
-
-    return { status }
-}
+import { TypographyP } from "@/components/Typography"
+import { SidebarTrigger } from "./ui/sidebar"
 
 export default function AppNavbar() {
-    const router = useRouter()
-    const { resetState } = useExpenseActions()
-    const { setHasShowNoti } = useUiActions()
-    const hasShowNoti = useHasShowNotification()
-    const { status } = useUserSync()
-    // useBudgetSync()
+    // const { setHasShowNoti } = useUiActions()
+    // const hasShowNoti = useHasShowNotification()
 
-    const handleSignOut = useCallback(() => {
-        resetState()
-        signOut({ callbackUrl: '/' })
-    }, [resetState])
+    // const [showNotification, setShowNotification] = useState(true);
 
-    const handleHome = useCallback(() => {
-        router.push('/')
-    }, [router])
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         setShowNotification(false);
+    //         setHasShowNoti()
+    //     }, 7000);
 
-    const handleAuth = useCallback(() => {
-        if (status === 'authenticated') {
-            handleSignOut()
-        } else if (status === 'unauthenticated') {
-            signIn()
-        }
-    }, [status, handleSignOut])
+    //     return () => clearTimeout(timer);
+    // }, [setHasShowNoti]);
 
-
-    const [showNotification, setShowNotification] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowNotification(false);
-            setHasShowNoti()
-        }, 7000);
-
-        return () => clearTimeout(timer);
-    }, [setHasShowNoti]);
-
-    const handleRemoveNotification = () => {
-        setShowNotification(false);
-        setHasShowNoti()
-    };
+    // const handleRemoveNotification = () => {
+    //     setShowNotification(false);
+    //     setHasShowNoti()
+    // };
 
 
     return (
         <>
-            {!hasShowNoti && showNotification && (
+            {/* {!hasShowNoti && showNotification && (
                 <div className={`
                     transform transition-all duration-300 ease-in-out
                     ${showNotification ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}
@@ -110,47 +70,13 @@ export default function AppNavbar() {
                         </AlertDescription>
                     </Alert>
                 </div>
-            )}
+            )} */}
 
             <div className="flex justify-between items-center border-b p-2">
-                <div className="lg:hidden">
-                    <Button
-                        size='icon'
-                        variant='secondary'
-                        onClick={() => router.back()}
-                        className="mr-1"
-                    >
-                        <ChevronLeft className="w-4" />
-                    </Button>
-                    <Button
-                        size='icon'
-                        variant='secondary'
-                        onClick={() => router.back()}
-                    >
-                        <ChevronRight className="w-4" />
-                    </Button>
-                </div>
-                <Button
-                    onClick={handleHome}
-                    className="remove-all text-sm"
-                >
+                <Link href='/'>
                     <TypographyP className="font-bold lg:text-2xl">Expense Manager*</TypographyP>
-                </Button>
-
-                <NavigationMenu>
-                    <NavigationMenuList>
-                        <NavigationMenuItem>
-                            <Button
-                                onClick={handleAuth}
-                                disabled={status === 'loading'}
-                                className="text-sm"
-
-                            >
-                                {status === 'authenticated' ? 'Logout' : 'Login'}
-                            </Button>
-                        </NavigationMenuItem>
-                    </NavigationMenuList>
-                </NavigationMenu>
+                </Link>
+                <SidebarTrigger />
             </div >
         </>
     )

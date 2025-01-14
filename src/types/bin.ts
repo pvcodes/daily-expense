@@ -4,6 +4,7 @@ export interface Bin {
 	name: string;
 	content: string;
 	isMarkdown: boolean;
+	userId?: number;
 	createdAt: Date;
 	updatedAt: Date;
 }

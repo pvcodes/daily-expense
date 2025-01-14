@@ -6,3 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 export const generateId = () => nanoid(6);
+
+export const dateToString = (day: string) =>
+	new Date(day).toLocaleDateString("en-CA");

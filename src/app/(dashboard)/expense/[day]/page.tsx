@@ -1,7 +1,6 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useExpenses } from "@/store/useExpenseStore"
 import React, { useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,8 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlusCircle, Calendar, IndianRupeeIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { TypographyMuted } from '@/components/Typography'
-import { Expense } from '@prisma/client'
-import { useFetchExpenses, useExpenseOperations, useCurrentDayBudget } from '@/service/expenseService'
+import { Expense } from '@/types/expense'
+import { useExpenseActions, useBudgets, useExpenses } from '@/store/useExpenseStore'
+import { expenseApi } from '@/service/expenseService'
+import { dateToString } from '@/lib/utils'
+import { toast } from 'sonner'
 
 
 // Types
@@ -18,10 +20,6 @@ interface SpendState {
     amount: number
     description: string
 }
-
-
-// Custom hooks
-
 
 // Components
 const BudgetCard = ({ remaining }: { remaining: number }) => (
@@ -91,6 +89,7 @@ const ExpensesList = ({ expenses, totalExpended }: { expenses: Partial<Expense>[
             </TypographyMuted>
         </CardHeader>
         <CardContent>
+            {/* TODO: Update and delete expenses */}
             <div className="space-y-3">
                 {expenses.map((expense, index) => (
                     <div
@@ -113,19 +112,32 @@ const ExpensesList = ({ expenses, totalExpended }: { expenses: Partial<Expense>[
 export default function ExpensePage() {
     const pathname = usePathname()
     const day = pathname.split('/').pop() as string
-    const currDayExpenses = useExpenses()?.[day] ?? []
-    const [spend, setSpend] = useState<SpendState>({ amount: NaN, description: '' })
-    const { addExpense } = useExpenseOperations()
-    const currBudget = useCurrentDayBudget(day)
+    const { expenses: currDayExpenses } = useExpenses(day)
+    const { budgets } = useBudgets()
+    const currBudget = useMemo(() => {
+        console.log('useMemo chuda')
+        return budgets?.find(budget => dateToString(budget.day) === day)
+    }, [budgets, day])
+    const { addExpense, updateExpense } = useExpenseActions()
 
-    useFetchExpenses(day)
+
+    const [spend, setSpend] = useState<SpendState>({ amount: NaN, description: '' })
 
     const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (!currBudget?.id) { toast('Something went wrong, Please refresh'); return }
         if (!spend.amount || !spend.description) return
+        console.log(day)
 
         try {
-            await addExpense(day, spend, currBudget)
+            addExpense(day, { ...spend, date: new Date(), id: -1 })
+            expenseApi.addExpense(spend, currBudget.id)
+                .then((data) => updateExpense(day, -1, data))
+                .catch((err) => {
+                    // TODO:
+                    console.log(err)
+                })
+
             setSpend({ amount: NaN, description: '' })
         } catch (error) {
             console.error('Failed to add expense:', error)
@@ -155,7 +167,7 @@ export default function ExpensePage() {
                 onSpendChange={setSpend}
             />
 
-            {currDayExpenses.length > 0 && (
+            {currDayExpenses?.length > 0 && (
                 <ExpensesList
                     expenses={currDayExpenses}
                     totalExpended={totalExpended}
