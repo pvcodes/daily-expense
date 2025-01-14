@@ -232,8 +232,6 @@ export const useBudget = (day: string) => {
 			}
 			return data.budget;
 		},
-		staleTime: STALE_TIME,
-		refetchInterval: REFETCH_INTERVAL,
 	});
 
 	return { budget, isLoading, error, isError };

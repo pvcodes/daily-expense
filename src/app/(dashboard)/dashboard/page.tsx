@@ -19,10 +19,22 @@ import { useBins } from '@/store/useBinStore';
 import Link from 'next/link';
 import { dateToString } from '@/lib/utils';
 
+// id?: number;
+// day: string;
+// amount: number;
+// userId?: number;
+// remaining: number;
+
+const BUDGET_INITIAL_STATE = {
+    day: new Date().toISOString(),
+    amount: NaN,
+    remaining: NaN
+}
+
 export default function DashboardPage() {
     const [view, setView] = useState('all');
     const { budget, isLoading, isError } = useBudget(dateToString(new Date().toISOString()))
-    const latestBudget = budget!
+    const latestBudget = budget ?? BUDGET_INITIAL_STATE
     const { bins } = useBins();
     const recentBins = bins?.slice(0, 5) || [];
 
@@ -85,7 +97,7 @@ export default function DashboardPage() {
                                 <Calendar className="h-5 w-5 text-blue-500" />
                                 Today&apos;s Budget
                             </CardTitle>
-                            {Object.keys(latestBudget).length > 0 && (
+                            {!isNaN(latestBudget.amount) && (
                                 <Button variant="outline" size="sm" asChild>
                                     <Link href={`/expense/${dateToString(latestBudget.day && latestBudget?.day)}`}>
                                         View Details
@@ -93,7 +105,7 @@ export default function DashboardPage() {
                                 </Button>
                             )}
                         </div>
-                        {Object.keys(latestBudget).length > 0 && (
+                        {!isNaN(latestBudget.amount) && (
                             <div className="mt-2">
                                 <CardDescription>
                                     {format(new Date(latestBudget?.day ?? 0), 'MMMM d, yyyy')}
@@ -105,7 +117,7 @@ export default function DashboardPage() {
                         )}
                     </CardHeader>
                     <CardContent>
-                        {Object.keys(latestBudget).length ? (
+                        {!isNaN(latestBudget.amount) ? (
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                     <span className="font-medium">Remaining</span>
