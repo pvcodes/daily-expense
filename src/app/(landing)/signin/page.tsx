@@ -81,7 +81,7 @@ export default function AuthTabs() {
 
         setAuthState(prev => ({ ...prev, isLoading: true, error: '' }))
 
-        await signIn('credentials', {
+        signIn('credentials', {
             email,
             password,
             redirect: false
@@ -90,9 +90,10 @@ export default function AuthTabs() {
                 const session = await getSession()
                 setUserAction(session?.user as User) // when res is true then session is defined
                 return router.push('/dashboard')
+            } else {
+                setError('Sigin failed, please check your credentials')
             }
-        }).catch(() => setError('Failed to sign in'))
-
+        })
     }
 
     // Sign up handler
@@ -112,7 +113,7 @@ export default function AuthTabs() {
         setAuthState(prev => ({ ...prev, isLoading: true, error: '' }))
 
         try {
-            await axios.post('/api/user', { name, email, password, img_url })
+            axios.post('/api/user', { name, email, password, img_url })
             setAuthState(prev => ({ ...prev, tab: 'signin', isLoading: false }))
             // Clear form except email for easy sign in
             setFormData(prev => ({
@@ -125,6 +126,9 @@ export default function AuthTabs() {
             // TODO
             setError('Failed to sign up')
             console.log(err)
+        } finally {
+            setAuthState(prev => ({ ...prev, isLoading: false, error: 'Something went wrong' }))
+
         }
     }
 

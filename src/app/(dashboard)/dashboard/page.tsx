@@ -23,7 +23,7 @@ import { dateToString } from '@/lib/utils';
 export default function DashboardPage() {
     const [view, setView] = useState('all');
     const { budgets, isLoading, isError } = useBudgets();
-    const latestBudget = budgets?.[0];
+    const latestBudget = budgets?.[0] ?? {};
     const { bins } = useBins();
     const recentBins = bins?.slice(0, 5) || [];
 
