@@ -9,7 +9,7 @@ export interface Expense {
 
 export interface Budget {
 	id?: number;
-	day: string;
+	day: Date;
 	amount: number;
 	userId?: number;
 	remaining: number;

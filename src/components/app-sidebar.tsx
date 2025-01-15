@@ -187,8 +187,8 @@ export function AppSidebar() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className="text-red-600 cursor-pointer"
-                                    onClick={() => {
-                                        signOut({ callbackUrl: '/' });
+                                    onClick={async () => {
+                                        await signOut({ callbackUrl: '/' });
                                         resetStore();
                                     }}
                                 >
