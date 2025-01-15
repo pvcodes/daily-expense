@@ -1,6 +1,4 @@
 'use client';
-
-import { useMemo } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -39,9 +37,9 @@ import { Button } from './ui/button';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { useUserActions } from '@/store/useUserStore';
+import { APP_NAME } from '@/constant';
 
-type MenuItemProps = {
+interface MenuItemProps {
     item: {
         title: string;
         url: string;
@@ -71,40 +69,34 @@ const menuItems = [
     },
 ];
 
+const MenuItem = ({ item, isActive }: MenuItemProps) => {
+    const { setOpenMobile } = useSidebar()
+    return (
+        <SidebarMenuItem>
+            <SidebarMenuButton
+                asChild
+                className={`group relative ${isActive && 'bg-gray-100'}`}
+            >
+                <Link href={item.url} className="relative transition-colors duration-150" onClick={() => setOpenMobile(false)}>
+                    <item.icon
+                        className={` ${isActive ? 'text-blue-600' : 'text-gray-600'}`}
+                    />
+                    <span
+                        className={`${isActive ? 'font-medium text-blue-600' : 'text-gray-700'}`}
+                    >
+                        {item.title}
+                    </span>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+    )
+}
+
+
+
 export function AppSidebar() {
     const router = useRouter();
-    const { setOpenMobile, setOpen } = useSidebar()
     const pathname = usePathname();
-    const { resetStore } = useUserActions();
-
-
-    const MenuItem = useMemo(() => {
-        const Component: React.FC<MenuItemProps> = ({ item, isActive }) => (
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                    asChild
-                    className={`group relative ${isActive && 'bg-gray-100'}`}
-                >
-                    <Link href={item.url} className="relative" onClick={() => { setOpen(false); setOpenMobile(false); }}>
-                        <item.icon
-                            className={`transition-colors duration-150 ${isActive ? 'text-blue-600' : 'text-gray-600'}`}
-                        />
-                        <span
-                            className={`transition-colors duration-150 ${isActive ? 'font-medium text-blue-600' : 'text-gray-700'}`}
-                        >
-                            {item.title}
-                        </span>
-                        <span className="absolute left-0 -bottom-4 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {item.description}
-                        </span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        );
-
-        Component.displayName = 'MenuItem';
-        return Component;
-    }, [setOpen, setOpenMobile]);
 
     return (
         <Sidebar variant='floating' collapsible='icon' >
@@ -119,7 +111,7 @@ export function AppSidebar() {
                             >
                                 <Menu className="w-4 h-4" />
                             </Button>
-                            <span className="font-medium">Expense Manager*</span>
+                            <span className="font-medium">{APP_NAME}</span>
                         </div>
 
                         <div className="flex gap-1">
@@ -187,10 +179,7 @@ export function AppSidebar() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className="text-red-600 cursor-pointer"
-                                    onClick={async () => {
-                                        await signOut({ callbackUrl: '/' });
-                                        resetStore();
-                                    }}
+                                    onClick={() => signOut({ callbackUrl: '/' })}
                                 >
                                     <LogOut className="w-4 h-4 mr-2" />
                                     Logout

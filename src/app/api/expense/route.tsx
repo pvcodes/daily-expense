@@ -63,8 +63,6 @@ export async function POST(req: NextRequest) {
         const { user } = await getServerSession(authOptions) as Session;
         const { description, amount, budgetId } = await req.json();
 
-        endOfDay.setDate(endOfDay.getDate() + 1);
-
         const expense = await db.expense.create({
             data: {
                 userId: user.id as number,

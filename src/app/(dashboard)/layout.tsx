@@ -1,5 +1,7 @@
 import AppNavbar from "@/components/app-navbar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Suspense } from "react";
+import Loading from "./loading";
 
 export default function RootLayout({
     children,
@@ -12,7 +14,9 @@ export default function RootLayout({
             <AppSidebar />
             <div className="w-full lg:w-3/5 mx-auto">
                 <AppNavbar />
-                {children}
+                <Suspense fallback={<Loading />}>
+                    {children}
+                </Suspense>
             </div>
 
         </>)

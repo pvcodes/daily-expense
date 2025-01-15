@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Session } from "next-auth";
 import Providers from "@/app/Provider";
+import { APP_DESC, APP_NAME } from "@/constant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Expenses Manager",
-  description: "", // TODO
+  title: APP_NAME,
+  description: APP_DESC, // TODO
 };
 
 
@@ -32,10 +33,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          {/* <AppSidebar /> */}
-          {/* <div className="w-full"> */}
-            {children}
-          {/* </div> */}
+          {children}
         </Providers>
       </body>
     </html>

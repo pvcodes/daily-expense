@@ -8,9 +8,9 @@ export interface Expense {
 }
 
 export interface Budget {
-	id?: number;
+	id: number;
 	day: Date;
 	amount: number;
-	userId?: number;
+	userId: number;
 	remaining: number;
 }

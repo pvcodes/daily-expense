@@ -9,9 +9,7 @@ import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
-import { getSession, signIn } from 'next-auth/react'
-import { useUserActions } from '@/store/useUserStore'
-import { User } from '@/types/user'
+import { signIn } from 'next-auth/react'
 
 type AuthTab = 'signin' | 'signup'
 
@@ -45,7 +43,6 @@ const MIN_PASSWORD_LENGTH = 6
 
 export default function AuthTabs() {
     const router = useRouter()
-    const { setUserAction } = useUserActions()
     const [formData, setFormData] = useState<FormState>(INITIAL_FORM_STATE)
     const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE)
 
@@ -100,8 +97,6 @@ export default function AuthTabs() {
             })
 
             if (response?.ok) {
-                const session = await getSession()
-                setUserAction(session?.user as User)
                 router.push('/dashboard')
             } else {
                 setError('Sign in failed, please check your credentials')
@@ -110,7 +105,7 @@ export default function AuthTabs() {
             console.log(err)
             setError('An unexpected error occurred')
         }
-    }, [formData, router, setError, setUserAction, validateSignIn])
+    }, [formData, router, setError, validateSignIn])
 
     const handleSignUp = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
@@ -148,9 +143,12 @@ export default function AuthTabs() {
     const ErrorAlert = useMemo(() => {
         if (!authState.error) return null
         return (
-            <Alert variant="destructive" className="flex items-center">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="ml-2">{authState.error}</AlertDescription>
+            <Alert variant="destructive">
+                <AlertDescription className="flex items-center">
+                    <AlertCircle size='16' className='mr-2'/>
+
+                    {authState.error}
+                </AlertDescription>
             </Alert>
         )
     }, [authState.error])
@@ -215,7 +213,7 @@ export default function AuthTabs() {
                                 <CardTitle>{tab === 'signin' ? 'Sign In' : 'Sign Up'}</CardTitle>
                             </CardHeader>
                             <form onSubmit={tab === 'signin' ? handleSignIn : handleSignUp}>
-                                <CardContent className="space-y-4">
+                                <CardContent>
                                     {ErrorAlert}
                                     {renderFormFields(tab === 'signin')}
                                 </CardContent>

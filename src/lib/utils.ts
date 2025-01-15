@@ -1,11 +1,18 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
-export const generateId = () => nanoid(6);
+
+export const generateId = () => {
+	const nanoid = customAlphabet(
+		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+		6
+	);
+	return nanoid();
+};
 
 export const dateToString = (day: string | Date) => {
 	if (typeof day === "string") {

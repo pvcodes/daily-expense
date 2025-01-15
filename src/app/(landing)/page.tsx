@@ -104,7 +104,7 @@ export default async function LandingPage() {
 
       {/* Floating CTA */}
       <div className="fixed bottom-8 right-8 z-50">
-        <Link href='/sigin'>
+        <Link href='/signin'>
           <Button size="lg"
             className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300"
           >
