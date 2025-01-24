@@ -142,8 +142,7 @@ const BinEditor = ({ bin: initalBin, isOwner }: BinEditorProps) => {
                         toast('Content copied to clipboard!');
                     }}
                     variant='outline'
-                    className="absolute top-2 right-8"
-                    disabled={!isOwner}
+                    className="absolute top-2 right-8 z-10"
                 >
                     <CopyIcon className="w-4 h-4" />
                 </Button>

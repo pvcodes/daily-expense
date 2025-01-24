@@ -139,7 +139,7 @@ export default async function DashboardPage() {
                                     <ScrollArea className="h-[200px] pt-2">
 
                                         {bins
-                                            .filter(bin => bin?.isMarkdown)
+                                            .filter(bin => !bin?.isMarkdown)
                                             .map((bin) => (
                                                 <Link
                                                     href={`/bin/${bin.uid}`}

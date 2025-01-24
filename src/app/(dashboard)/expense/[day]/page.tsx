@@ -7,6 +7,7 @@ import { Expense } from "@/types/expense";
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import { getServerSession } from "next-auth";
+import { notFound } from "next/navigation";
 
 
 
@@ -17,11 +18,7 @@ export default async function SingleExpensePage({ params }: {
     const session = await getServerSession(authOptions)
     const { expenses, budget } = await getExpenseInPagination(1, 10, day, session?.user.id as number)
 
-    if (!expenses || !budget) {
-        return <>
-            Not a Valid day, {day}!
-        </>
-    }
+    if (!expenses || !budget) notFound()
 
     return (
         <div className="max-w-2xl mx-auto p-4 space-y-6">

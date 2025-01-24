@@ -12,7 +12,7 @@ import { AddBudgetForm } from "@/components/expense/AddBudgetForm"
 export default async function ExpensePage() {
     const session = await getServerSession(authOptions)
     const { budgets } = await getBudgetsInPagination(1, 10, session?.user.id as number)
-    const todayBudget = compareDate(budgets[0]?.day, new Date()) ? budgets[0] : null
+    const todayBudget = budgets[0]?.day && compareDate(budgets[0].day, new Date()) ? budgets[0] : null
 
     return (
         <div className="p-4">
