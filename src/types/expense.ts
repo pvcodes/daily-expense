@@ -14,3 +14,12 @@ export interface Budget {
 	userId: number;
 	remaining: number;
 }
+
+export interface MonthlyExpense {
+	id?: number;
+	mid: string;
+	amount: number;
+	description: string;
+	date: Date;
+	userId?: number;
+}

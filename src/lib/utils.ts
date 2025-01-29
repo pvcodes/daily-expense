@@ -24,3 +24,11 @@ export const dateToString = (day: string | Date) => {
 
 export const compareDate = (a: Date, b: Date) =>
 	a.toLocaleDateString("en-CA") === b.toLocaleDateString("en-CA");
+
+export const getDateInMMYYYY = (date: Date) =>
+	new Intl.DateTimeFormat("en", {
+		month: "2-digit",
+		year: "numeric",
+	})
+		.format(date)
+		.replace("/", "-");

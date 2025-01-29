@@ -50,12 +50,14 @@ export function BudgetTable({ budgets }: { budgets: Budget[] }) {
     )
 }
 
-export function BudgetDisplay({ amount }: { amount: number }) {
+export function BudgetDisplay({ amount, desc }: { amount: number, desc: string }) {
     return (
         <div className="bg-white rounded-lg p-4 shadow-sm">
             <div className="flex justify-between items-center">
-                <span className="text-gray-600">Today&apos;s Budget</span>
-                <span className="text-lg font-semibold">₹{amount}</span>
+                <span className="text-gray-600">{desc}</span>
+                <span className="text-lg font-semibold">
+                    {amount <= 0 ? 'N/A' : `₹${amount}`}
+                </span>
             </div>
         </div>
     )

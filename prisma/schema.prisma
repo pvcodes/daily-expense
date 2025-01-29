@@ -20,9 +20,10 @@ model User {
   password String
   img_url  String?
 
-  expenses Expense[]
-  budgets  Budget[]
-  Bin      Bin[]
+  expenses       Expense[]
+  budgets        Budget[]
+  Bin            Bin[]
+  MonthlyExpense MonthlyExpense[]
 }
 
 model Expense {
@@ -58,4 +59,14 @@ model Bin {
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
+}
+
+model MonthlyExpense {
+  id          Int      @id @default(autoincrement())
+  mid         String // mm-yyyy
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
 }

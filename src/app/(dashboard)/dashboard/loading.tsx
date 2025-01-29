@@ -1,7 +1,9 @@
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, FileText } from "lucide-react";
+import { Calendar, FileText, BarChart3 } from "lucide-react";
 
+
+// TODO: need to update
 export default function DashboardSkeleton() {
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-4 lg:p-6">
@@ -40,25 +42,19 @@ export default function DashboardSkeleton() {
                     </CardContent>
                 </Card>
 
-                {/* Recent Bins Card Skeleton */}
+                {/* Monthly Overview Skeleton */}
                 <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                        <CardTitle className='flex items-center'> <FileText className='text-purple-700 mr-1' /> Recent Bins</CardTitle>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-green-500" />
+                            Monthly Overview
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Skeleton className="h-8 w-full mb-4" />
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((item) => (
-                                <div key={item} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-48" />
-                                        <div className="flex items-center gap-2">
-                                            <Skeleton className="h-4 w-16" />
-                                            <Skeleton className="h-4 w-24" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-2 gap-6">
+                            <Skeleton className="h-20 w-full rounded-lg" />
+                            <Skeleton className="h-20 w-full rounded-lg" />
                         </div>
                     </CardContent>
                 </Card>
@@ -80,6 +76,31 @@ export default function DashboardSkeleton() {
                     </Card>
                 ))}
             </div>
+
+            {/* Recent Bins Skeleton */}
+            <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                    <CardTitle className="flex items-center">
+                        <BarChart3 className="text-purple-700 mr-1" /> Recent Activity
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-8 w-full mb-4" />
+                    <div className="space-y-4">
+                        {[1, 2, 3].map((item) => (
+                            <div key={item} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-48" />
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-4 w-16" />
+                                        <Skeleton className="h-4 w-24" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

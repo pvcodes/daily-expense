@@ -36,8 +36,10 @@ import {
 import { Button } from './ui/button';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { APP_NAME } from '@/constant';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 
 interface MenuItemProps {
     item: {
@@ -97,6 +99,7 @@ const MenuItem = ({ item, isActive }: MenuItemProps) => {
 export function AppSidebar() {
     const router = useRouter();
     const pathname = usePathname();
+    const session = useSession()
 
     return (
         <Sidebar variant='floating' collapsible='icon' >
@@ -157,7 +160,11 @@ export function AppSidebar() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton>
-                                    <User className='w-4' /> Account
+                                    <Avatar className='w-8 h-8 mr-2'>
+                                        <AvatarImage src={session.data?.user.image ?? ''} />
+                                        <AvatarFallback><User className='w-4 h-4' /></AvatarFallback>
+                                    </Avatar>
+                                    {session.data?.user.name ?? session.data?.user.email}
                                     <ChevronUp className="ml-auto" />
                                 </SidebarMenuButton>
                             </DropdownMenuTrigger>
