@@ -55,6 +55,7 @@ export const AddMonthlyExpenseForm: React.FC<AddMonthlyExpenseFormProps> = ({ sh
             setExpense({ description: '', amount: '' }) // Reset form
             router.push(`/expense/month/${currMonthStr}`)
         } catch (error) {
+            console.log(error)
             toast('An error occurred while adding the expense')
         } finally {
             setIsLoading(false)

@@ -9,7 +9,6 @@ import { format } from "date-fns"
 import { BudgetDisplay, BudgetTable } from "@/components/expense"
 import { AddBudgetForm } from "@/components/expense/AddBudgetForm"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { AddMonthlyExpenseForm } from "@/components/expense/month"
 
 export default async function ExpensePage() {

@@ -9,7 +9,6 @@ import {
     Calendar,
     BarChart3,
     FileText,
-    DollarSign,
     IndianRupeeIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -22,7 +21,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getBinsInPagination } from '@/db/actions/bin';
 import DashboardSkeleton from './loading';
-import { TypographyMuted } from '@/components/Typography';
 import { AddMonthlyExpenseForm } from '@/components/expense/month';
 
 const BUDGET_INITIAL_STATE = {
@@ -65,7 +63,7 @@ export default async function DashboardPage() {
                 {/* Refined Header Section */}
                 <div className="flex flex-col space-y-1">
                     <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground">Welcome back! Here's your financial overview.</p>
+                    <p className="text-muted-foreground">Welcome back! Here&apos; your financial overview.</p>
                 </div>
 
                 {/* Main Cards Section */}
@@ -76,7 +74,7 @@ export default async function DashboardPage() {
                             <div className="flex items-center justify-between">
                                 <CardTitle className="flex items-center gap-2 text-lg font-medium">
                                     <Calendar className="h-5 w-5 text-blue-500" />
-                                    Today's Budget
+                                    Today&apos; Budget
                                 </CardTitle>
                                 {!isNaN(latestBudget.amount) && (
                                     <Link href={`/expense/${dateToString(latestBudget.day)}`}>
