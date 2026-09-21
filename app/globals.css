@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --canvas: #f6f6f7;
+  --panel: #fdfdfd;
+  --panel-2: #ececee;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --ink: #19191c;
+  --ink-2: #52525b;
+  --ink-3: #71717a;
+  --background: #f6f6f7;
+  --foreground: #19191c;
+
+  --accent: #10b981;
+  --accent-strong: #059669;
+  --accent-ink: #022c22;
+  --accent-soft: #ecfdf5;
+  --accent-border: #a7f3d0;
+  --accent-text: #047857;
+
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: #09090b;
+  --panel: #18181b;
+  --panel-2: #27272a;
+  --line: #27272a;
+  --line-strong: #3f3f46;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #71717a;
+  --background: #09090b;
+  --foreground: #fafafa;
+
+  --accent: #10b981;
+  --accent-strong: #34d399;
+  --accent-ink: #022c22;
+  --accent-soft: #022c22;
+  --accent-border: #065f46;
+  --accent-text: #6ee7b7;
+
+  color-scheme: dark;
+}
+
+html[data-accent="blue"] {
+  --accent: #2563eb;
+  --accent-strong: #3b82f6;
+  --accent-ink: #ffffff;
+  --accent-soft: #eff6ff;
+  --accent-border: #bfdbfe;
+  --accent-text: #1d4ed8;
+}
+html[data-accent="blue"].dark {
+  --accent-strong: #93c5fd;
+  --accent-ink: #ffffff;
+  --accent-soft: #1e3a8a;
+  --accent-border: #1d4ed8;
+  --accent-text: #93c5fd;
+}
+
+html[data-accent="violet"] {
+  --accent: #8b5cf6;
+  --accent-strong: #7c3aed;
+  --accent-ink: #2e1065;
+  --accent-soft: #f5f3ff;
+  --accent-border: #ddd6fe;
+  --accent-text: #6d28d9;
+}
+html[data-accent="violet"].dark {
+  --accent-strong: #a78bfa;
+  --accent-ink: #4c1d95;
+  --accent-soft: #4c1d95;
+  --accent-border: #6d28d9;
+  --accent-text: #c4b5fd;
+}
+
+html[data-accent="rose"] {
+  --accent: #f43f5e;
+  --accent-strong: #e11d48;
+  --accent-ink: #4c0519;
+  --accent-soft: #fff1f2;
+  --accent-border: #fecdd3;
+  --accent-text: #be123c;
+}
+html[data-accent="rose"].dark {
+  --accent-strong: #fb7185;
+  --accent-ink: #881337;
+  --accent-soft: #881337;
+  --accent-border: #be123c;
+  --accent-text: #fda4af;
+}
+
+html[data-accent="amber"] {
+  --accent: #f59e0b;
+  --accent-strong: #d97706;
+  --accent-ink: #451a03;
+  --accent-soft: #fffbeb;
+  --accent-border: #fde68a;
+  --accent-text: #b45309;
+}
+html[data-accent="amber"].dark {
+  --accent-strong: #fbbf24;
+  --accent-ink: #78350f;
+  --accent-soft: #78350f;
+  --accent-border: #b45309;
+  --accent-text: #fde68a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-border: var(--accent-border);
+  --color-accent-text: var(--accent-text);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100dvh;
+}
+
+/* Prevent pull-to-refresh interfering with the app on iOS standalone */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Keyboard focus must be visible and never rely on color alone (WCAG 1.4.11) */
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px; /* prevents iOS zoom on focus */
+}
+
+/* Hide number input spinners for cleaner mobile UI */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Bottom-sheet quick-add: slide up and fade in (layout transform, not width) */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
