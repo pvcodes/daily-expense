@@ -8,6 +8,7 @@ import { CategoryBars } from "@/components/Charts";
 import AddExpense from "@/components/AddExpense";
 import MonthSummary from "@/components/MonthSummary";
 import WeeklyBudget from "@/components/WeeklyBudget";
+import MonthlyCategoryMatrix from "@/components/MonthlyCategoryMatrix";
 import { EmptyState, Section, Skeleton } from "@/components/ui";
 import { useHomeWidgets } from "@/hooks/useHomeWidgets";
 import { CATEGORY_COLORS } from "@/lib/types";
@@ -116,6 +117,17 @@ export default function HomePage() {
         ) : (
           <Section title="Where you spent">
             <CategoryBars transactions={thisMonth} />
+          </Section>
+        ))}
+
+      {enabled.has("monthlyCategory") &&
+        (loading ? (
+          <Section>
+            <Skeleton className="h-40 w-full" />
+          </Section>
+        ) : (
+          <Section title="Month by category">
+            <MonthlyCategoryMatrix transactions={transactions} />
           </Section>
         ))}
 

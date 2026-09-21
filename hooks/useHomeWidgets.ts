@@ -25,6 +25,11 @@ export const HOME_WIDGETS = [
     description: "Ranked bars of spend by category this month",
   },
   {
+    key: "monthlyCategory",
+    label: "Month by category",
+    description: "Monthly spend per category, last 6 months",
+  },
+  {
     key: "recent",
     label: "Recent transactions",
     description: "The latest few transactions",
@@ -33,7 +38,7 @@ export const HOME_WIDGETS = [
 
 export type HomeWidgetKey = (typeof HOME_WIDGETS)[number]["key"];
 
-const PREF_KEY = "expense-tracker.homeWidgets";
+const PREF_KEY = "expense-tracker.homeWidgets.v2";
 
 function decode(raw: string): Set<HomeWidgetKey> {
   try {

@@ -283,6 +283,63 @@ export function monthDelta(txs: Transaction[]): {
   return { pct, current, previous };
 }
 
+export interface MonthCategoryRow {
+  name: string;
+  values: number[];
+  total: number;
+}
+
+export function categoryMonthMatrix(
+  txs: Transaction[],
+  monthCount = 6
+): {
+  months: string[];
+  labels: string[];
+  rows: MonthCategoryRow[];
+  monthTotals: number[];
+  grandTotal: number;
+} {
+  const now = new Date();
+  const months: string[] = [];
+  const labels: string[] = [];
+  for (let i = monthCount - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    );
+    labels.push(MONTHS[d.getMonth()]);
+  }
+  const cell = new Map<string, number[]>();
+  const monthTotals = new Array<number>(monthCount).fill(0);
+  for (const t of txs) {
+    if (t.price >= 0) continue;
+    const idx = months.indexOf(t.date.slice(0, 7));
+    if (idx === -1) continue;
+    let values = cell.get(t.category);
+    if (!values) {
+      values = new Array<number>(monthCount).fill(0);
+      cell.set(t.category, values);
+    }
+    const v = -t.price;
+    values[idx] += v;
+    monthTotals[idx] += v;
+  }
+  const rows = [...cell.entries()]
+    .map(([name, values]) => ({
+      name,
+      values,
+      total: values.reduce((s, v) => s + v, 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+  return {
+    months,
+    labels,
+    rows,
+    monthTotals,
+    grandTotal: monthTotals.reduce((s, v) => s + v, 0),
+  };
+}
+
 export function spendTrend(
   txs: Transaction[],
   period: PeriodKey,
