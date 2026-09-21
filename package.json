@@ -10,7 +10,8 @@
     "test": "vitest run",
     "expense": "node --env-file=.env --import tsx scripts/cli-expense.ts",
     "seed": "node --env-file=.env --import tsx scripts/seed-db.ts",
-    "seed:overwrite": "node --env-file=.env --import tsx scripts/seed-db.ts --overwrite"
+    "seed:overwrite": "node --env-file=.env --import tsx scripts/seed-db.ts --overwrite",
+    "export:csv": "node --env-file=.env --import tsx scripts/export-csv.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
