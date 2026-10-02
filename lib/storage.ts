@@ -18,7 +18,6 @@ export const APP_STORAGE_KEYS = [
  * bundle is fetched on next load.
  */
 export async function clearLocalDataAndCache(): Promise<void> {
-  // 1. Drop app-owned preference keys (transactions live on the server)
   for (const key of APP_STORAGE_KEYS) {
     try {
       localStorage.removeItem(key);
@@ -45,5 +44,31 @@ export async function clearLocalDataAndCache(): Promise<void> {
     }
   } catch {
     // SW unavailable
+  }
+}
+
+/**
+ * Called on login and logout. On a shared device the previous user's data can
+ * still sit in Cache Storage (the service worker caches /api/transactions and
+ * rendered pages) and in localStorage prefs — both must go before the next
+ * person signs in. The service worker stays registered; only its caches are
+ * dropped, so offline support survives a user switch.
+ */
+export async function purgeUserScopedState(): Promise<void> {
+  for (const key of APP_STORAGE_KEYS) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // storage unavailable
+    }
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((k) => window.caches.delete(k)));
+    }
+  } catch {
+    // caches unavailable / private mode
   }
 }

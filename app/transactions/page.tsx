@@ -1,12 +1,15 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useSyncedPref } from "@/hooks/useSyncedPref";
-import { CATEGORIES } from "@/lib/types";
+import { useCategories } from "@/hooks/useCategories";
+import { useRecurring } from "@/hooks/useRecurring";
+import { mergeCategories, DEFAULT_CATEGORIES, type RecurrenceFrequency } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { EmptyState, Skeleton } from "@/components/ui";
 import TransactionRow from "@/components/TransactionRow";
+import CategoryPicker from "@/components/CategoryPicker";
 
 const PAGE = 50;
 
@@ -23,7 +26,17 @@ function pageList(current: number, total: number): (number | "…")[] {
 }
 
 function TransactionsContent() {
-  const { transactions, deleteTransaction, loaded } = useExpenses();
+  const { transactions, deleteTransaction, loaded, refresh } = useExpenses();
+  const { categories } = useCategories();
+  const { rules, addRule, removeRule } = useRecurring();
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [rrPrice, setRrPrice] = useState("");
+  const [rrCategory, setRrCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
+  const [rrNotes, setRrNotes] = useState("");
+  const [rrFrequency, setRrFrequency] = useState<RecurrenceFrequency>("monthly");
+  const [rrStart, setRrStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [rrError, setRrError] = useState<string | null>(null);
+  const [confirmRuleId, setConfirmRuleId] = useState<string | null>(null);
   const [cat, setCat] = useSyncedPref<string>(
     "expense-tracker.txns.cat",
     "all"
@@ -35,6 +48,31 @@ function TransactionsContent() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
+  async function submitRule(e: React.FormEvent) {
+    e.preventDefault();
+    const p = parseFloat(rrPrice);
+    if (!Number.isFinite(p) || p <= 0) {
+      setRrError("Enter a valid amount");
+      return;
+    }
+    setRrError(null);
+    try {
+      await addRule({
+        category: rrCategory,
+        price: -p,
+        notes: rrNotes,
+        frequency: rrFrequency,
+        startDate: rrStart,
+        time: "00:00",
+      });
+      setRrPrice("");
+      setRrNotes("");
+      void refresh();
+    } catch {
+      setRrError("Couldn't save — check your connection");
+    }
+  }
+
   const onCat = (c: string) => {
     setCat(c);
     setPage(1);
@@ -44,11 +82,20 @@ function TransactionsContent() {
     setPage(1);
   };
 
+  // Only categories that actually have rows get a chip, in list order, with
+  // anything unexpected from an import appended so it stays reachable.
   const cats = useMemo(() => {
     const set = new Set<string>();
     transactions.forEach((t) => set.add(t.category));
-    return ["all", ...CATEGORIES.filter((c) => set.has(c))];
-  }, [transactions]);
+    const known = categories.filter((c) => set.has(c));
+    const extra = [...set].filter((c) => !categories.includes(c));
+    return ["all", ...mergeCategories(known, extra)];
+  }, [transactions, categories]);
+
+  // A filter remembered from another device may not exist here any more.
+  useEffect(() => {
+    if (cat !== "all" && !cats.includes(cat)) setCat("all");
+  }, [cat, cats, setCat]);
 
   const filtered = useMemo(() => {
     return transactions
@@ -96,6 +143,117 @@ function TransactionsContent() {
                 }`}
         </p>
       </header>
+
+      <div className="rounded-2xl border border-line bg-panel">
+        <button
+          onClick={() => setShowRecurring((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-ink"
+        >
+          <span>Recurring rules{rules.length > 0 ? ` (${rules.length})` : ""}</span>
+          <span className="text-ink-3">{showRecurring ? "Hide" : "Manage"}</span>
+        </button>
+        {showRecurring && (
+          <div className="space-y-3 border-t border-line p-4">
+            {rules.length === 0 ? (
+              <p className="text-sm text-ink-3">
+                No recurring rules yet. Add one to auto-create expenses like rent or subscriptions.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {rules.map((r) => (
+                  <li key={r.id} className="flex items-center gap-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink">
+                        {r.notes || r.category}{" "}
+                        <span className="text-ink-3">
+                          · {formatMoney(Math.abs(r.price))} · {r.frequency}
+                        </span>
+                      </p>
+                      <p className="text-xs text-ink-3">{r.category} · from {r.startDate}</p>
+                    </div>
+                    {confirmRuleId === r.id ? (
+                      <>
+                        <button
+                          onClick={() => setConfirmRuleId(null)}
+                          className="rounded-lg border border-line-strong bg-panel-2 px-2.5 py-1 text-xs font-medium text-ink"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            void removeRule(r.id);
+                            setConfirmRuleId(null);
+                          }}
+                          className="rounded-lg bg-red-500 px-2.5 py-1 text-xs font-semibold text-white"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRuleId(r.id)}
+                        aria-label={`Delete ${r.notes || r.category}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-3 active:bg-red-500/10 active:text-red-500"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor">
+                          <path d="M6 6l12 12M6 18 18 6" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form onSubmit={submitRule} className="space-y-2 border-t border-line pt-3">
+              <input
+                type="number"
+                inputMode="decimal"
+                aria-label="Amount"
+                placeholder="Amount"
+                value={rrPrice}
+                onChange={(e) => setRrPrice(e.target.value)}
+                className="w-full rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+              />
+              <CategoryPicker value={rrCategory} onChange={setRrCategory} />
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  aria-label="Frequency"
+                  value={rrFrequency}
+                  onChange={(e) => setRrFrequency(e.target.value as RecurrenceFrequency)}
+                  className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base focus:border-accent focus:outline-none"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+                <input
+                  type="date"
+                  aria-label="Start date"
+                  value={rrStart}
+                  onChange={(e) => setRrStart(e.target.value)}
+                  className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base focus:border-accent focus:outline-none"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Notes (optional)"
+                aria-label="Notes"
+                value={rrNotes}
+                onChange={(e) => setRrNotes(e.target.value)}
+                className="w-full rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+              />
+              {rrError && <p className="text-xs text-red-500">{rrError}</p>}
+              <button
+                type="submit"
+                disabled={!rrPrice}
+                className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-accent-ink active:scale-[0.98] disabled:opacity-50"
+              >
+                Add recurring rule
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-2 -mx-4 overflow-x-auto px-4 no-scrollbar">
         {cats.map((c) => (

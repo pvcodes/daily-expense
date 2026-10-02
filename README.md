@@ -48,15 +48,24 @@ npm run start
 Optional cloud sync requires `.env`:
 
 ```
-APP_PASSWORD=270601
+APP_USERS="me:270601,bubu:bubu27"
+APP_SECRET=<random string>          # signs the session cookie (falls back to APP_PASSWORD)
 DATABASE_URL=postgres://...
 ```
+
+`APP_USERS` is a comma-separated `id:passcode` list — one account per person.
+Login is passcode-only: the passcode identifies the account, and every row in
+`transactions` / `user_prefs` carries that `user_id`, so nobody sees or
+overwrites anybody else's data. `APP_PASSWORD` alone still works and maps to
+the single account `me`. Add a person by appending `,<id>:<passcode>` and
+redeploying. Passcodes may contain `:` but not `,`.
 
 Seed the database (transfer from the canonical `converted_expenses.csv`):
 
 ```bash
 npm run seed             # upsert, no overwrite
 npm run seed:overwrite   # wipe + reload
+npm run seed -- --user bubu file.csv   # seed a specific account
 ```
 
 ## Scripts
@@ -67,7 +76,7 @@ npm run seed:overwrite   # wipe + reload
 | `npm run build`    | Production build                     |
 | `npm run start`    | Serve production build               |
 | `npm run lint`     | ESLint                               |
-| `npm run test`     | Vitest unit tests (`npm test`: 35)   |
+| `npm run test`     | Vitest unit tests (`npm test`)       |
 | `npm run seed`     | Upsert data from CSV into Postgres   |
 
 ## Project Structure
@@ -93,22 +102,34 @@ components/
 hooks/
   useExpenses.tsx      # cloud-first context: fetches /api/transactions, optimistic mutations
   useNetworkStatus.ts  # navigator.onLine + listeners
+  useSessionUser.ts    # who the auth cookie belongs to
   useWeekStart.ts      # week start day setting
   useWeeklyBudget.ts   # budget state
   sync.ts              # fetchRemote/pushRemote/clearRemote (fetchRemote returns .offline)
 lib/
-  types.ts              # Transaction + categories/colors
+  types.ts              # Transaction + default categories/colors
   analytics.ts          # month/week/day aggregations (week-start aware)
   import.ts             # CSV/JSON import-export
   format.ts             # INR + date/time formatting
-  auth.ts               # HMAC cookie + rate limiting
+  users.ts              # APP_USERS parsing + passcode -> user lookup
+  auth.ts               # HMAC cookie (carries user id) + rate limiting
+  db.ts                 # Neon Postgres, every query scoped by user_id
+  storage.ts            # localStorage + Cache Storage purging
 ```
+
+## Categories
+
+Five defaults — **Eat Out, Bills, Transport, Groceries, Shopping** — chosen because they cover the buckets that dominate personal spending. Add your own from the add/edit sheet ("+ New"), the Categories page ("+ Category"), or the CLI (type any name). Your list is stored per user and follows you across devices; categories already in your ledger are adopted as yours automatically.
 
 ## Data Model
 
+Every row is owned by a user: `transactions` and `user_prefs` are keyed on
+`(user_id, id)` / `(user_id, key)`, so transaction ids and preference keys are
+only unique within one person's ledger.
+
 ```ts
 Transaction = {
-  id,                 // string
+  id,                 // string, unique per user
   date,               // "yyyy-MM-dd"
   time,               // "HH:mm[:ss]"
   category,           // string
@@ -130,6 +151,9 @@ The importer also accepts the legacy 17-column format. Dates can be `yyyy-MM-dd`
 ## Security & Accessiblity
 
 - Passcode login is rate-limited (8 attempts / 15 min per IP)
+- Accounts come from `APP_USERS`; passcodes are never stored in the DB
+- The signed cookie carries the user id, and every transaction/pref query filters on it
+- Logging in or out purges Cache Storage + local prefs, so a shared device can't leak the previous user's data offline
 - Security headers on all responses: strict CSP, no-sniff, frame denial, permissions policy
 - Keyboard-visible focus rings, zoomable viewport (no `maximumScale` lock), labeled inputs, 40px touch targets, `aria-expanded` on expandable rows
 

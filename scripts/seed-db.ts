@@ -4,14 +4,26 @@ import path from "path";
 import { parseCSV } from "../lib/import";
 import type { Transaction } from "../lib/types";
 import { initSchema, upsertMany, countTransactions, clearAllTransactions } from "../lib/db";
+import { requireUser } from "../lib/users";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.resolve(__dirname, "..");
 
+function flagValue(name: string): string | undefined {
+  const args = process.argv.slice(2);
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const overwrite = args.includes("--overwrite");
-  const fileArgs = args.filter((a) => !a.startsWith("-"));
+  const userId = requireUser(flagValue("--user"));
+  const fileArgs = args.filter((a, i) => {
+    if (a.startsWith("-")) return false;
+    // skip the value that follows a flag
+    return args[i - 1] !== "--user";
+  });
   // converted_expenses.csv is the canonical merged file (850 rows in 4-col format).
   // Pass explicit file paths to seed other sources instead.
   const files =
@@ -55,12 +67,12 @@ async function main() {
       );
       process.exit(1);
     }
-    await clearAllTransactions();
-    console.log("Cleared existing rows (--overwrite).");
+    await clearAllTransactions(userId);
+    console.log(`Cleared existing rows for '${userId}' (--overwrite).`);
   }
-  await upsertMany(unique);
-  const n = await countTransactions();
-  console.log(`Seeded. DB now has ${n} transactions.`);
+  await upsertMany(userId, unique);
+  const n = await countTransactions(userId);
+  console.log(`Seeded '${userId}'. Their DB ledger now has ${n} transactions.`);
 
   if (n !== unique.length) {
     console.warn(`Expected ${unique.length} but DB has ${n}.`);

@@ -10,6 +10,7 @@
  * for a given key (keeps local edits authoritative).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CUSTOM_CATEGORIES_KEY } from "@/lib/types";
 
 const PREF_KEYS = [
   "expense-tracker.period",
@@ -18,7 +19,8 @@ const PREF_KEYS = [
   "expense-tracker.weekStart",
   "expense-tracker.accent",
   "expense-tracker.budget.v1",
-  "expense-tracker.homeWidgets",
+  "expense-tracker.homeWidgets.v2",
+  CUSTOM_CATEGORIES_KEY,
 ];
 
 function loadLocal(key: string): string | null {

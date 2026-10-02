@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_COOKIE,
-  checkPassword,
   createAuthToken,
   clientIp,
   checkRateLimit,
   clearRateLimit,
 } from "@/lib/auth";
+import { authenticate } from "@/lib/users";
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
@@ -26,13 +26,14 @@ export async function POST(req: NextRequest) {
     // invalid body → fail auth below
   }
 
-  if (!checkPassword(password)) {
+  const user = authenticate(password);
+  if (!user) {
     return NextResponse.json({ error: "Wrong passcode" }, { status: 401 });
   }
 
   clearRateLimit(ip);
-  const token = await createAuthToken();
-  const res = NextResponse.json({ ok: true });
+  const token = await createAuthToken(user.id);
+  const res = NextResponse.json({ ok: true, user: user.id });
   res.cookies.set(AUTH_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

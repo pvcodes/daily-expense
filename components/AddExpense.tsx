@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useExpenses } from "@/hooks/useExpenses";
-import { CATEGORIES } from "@/lib/types";
+import { DEFAULT_CATEGORIES } from "@/lib/types";
+import CategoryPicker from "@/components/CategoryPicker";
 
 function AddExpenseSheet({ onClose }: { onClose: () => void }) {
   const { addTransaction } = useExpenses();
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState(() => new Date().toTimeString().slice(0, 5));
@@ -69,22 +70,7 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
             autoFocus
           />
 
-          <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCategory(c)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  category === c
-                    ? "bg-accent text-accent-ink"
-                    : "border border-line-strong bg-panel-2 text-ink-3"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <CategoryPicker value={category} onChange={setCategory} />
 
           <div className="grid grid-cols-2 gap-3">
             <input

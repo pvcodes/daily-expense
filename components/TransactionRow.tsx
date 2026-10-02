@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Transaction } from "@/lib/types";
-import { CATEGORY_COLORS } from "@/lib/types";
+import { categoryColor } from "@/lib/types";
 import { formatMoney, formatDate, formatTime } from "@/lib/format";
 
 export default function TransactionRow({
@@ -31,7 +31,7 @@ export default function TransactionRow({
     >
       <span
         className="h-9 w-1.5 shrink-0 rounded-full"
-        style={{ background: CATEGORY_COLORS[tx.category] || "#64748b" }}
+        style={{ background: categoryColor(tx.category) }}
       />
       <div className="min-w-0 flex-1">
         <div className={`truncate text-ink ${compact ? "text-sm" : "text-sm font-medium"}`}>

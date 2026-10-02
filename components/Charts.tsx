@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Transaction } from "@/lib/types";
-import { CATEGORY_COLORS } from "@/lib/types";
+import { categoryColor } from "@/lib/types";
 import { aggregateByCategory } from "@/lib/analytics";
 import { formatMoney } from "@/lib/format";
 
@@ -21,7 +21,7 @@ export function CategoryBars({ transactions }: { transactions: Transaction[] }) 
   return (
     <div className="space-y-2.5">
       {data.slice(0, 8).map((d) => {
-        const color = CATEGORY_COLORS[d.name] || "#64748b";
+        const color = categoryColor(d.name);
         const pct = Math.round((d.value / total) * 100);
         return (
           <div key={d.name}>

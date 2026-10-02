@@ -11,7 +11,7 @@ import WeeklyBudget from "@/components/WeeklyBudget";
 import MonthlyCategoryMatrix from "@/components/MonthlyCategoryMatrix";
 import { EmptyState, Section, Skeleton } from "@/components/ui";
 import { useHomeWidgets } from "@/hooks/useHomeWidgets";
-import { CATEGORY_COLORS } from "@/lib/types";
+import { categoryColor } from "@/lib/types";
 import { currentMonthKey, type PeriodKey } from "@/lib/analytics";
 import { formatMoney, formatDate, formatTime } from "@/lib/format";
 import { useSyncedPref } from "@/hooks/useSyncedPref";
@@ -173,9 +173,7 @@ export default function HomePage() {
                     >
                       <span
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{
-                          background: CATEGORY_COLORS[t.category] || "#64748b",
-                        }}
+                        style={{ background: categoryColor(t.category) }}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm">{t.notes || t.category}</div>

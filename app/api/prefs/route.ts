@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  initSchema,
+  initSchemaOnce,
   listPrefs,
   upsertPrefs,
 } from "@/lib/db";
+import { sessionUserId } from "@/lib/auth";
+import { CUSTOM_CATEGORIES_KEY } from "@/lib/types";
 
 const ALLOWED_KEYS = new Set([
   "expense-tracker.period",
@@ -12,22 +14,28 @@ const ALLOWED_KEYS = new Set([
   "expense-tracker.weekStart",
   "expense-tracker.accent",
   "expense-tracker.budget.v1",
+  "expense-tracker.homeWidgets.v2",
+  CUSTOM_CATEGORIES_KEY,
 ]);
 
 const MAX_VALUE = 2000;
 
 async function ensureSchema() {
   try {
-    await initSchema();
+    await initSchemaOnce();
   } catch {
     // schema race between cold starts is fine
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const userId = await sessionUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     await ensureSchema();
-    const prefs = await listPrefs();
+    const prefs = await listPrefs(userId);
     return NextResponse.json({ prefs });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
@@ -35,6 +43,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const userId = await sessionUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await request.json().catch(() => ({}));
     const pairs = Array.isArray(body?.prefs)
@@ -66,7 +78,7 @@ export async function PUT(request: Request) {
       clean.push({ key, value });
     }
     await ensureSchema();
-    await upsertPrefs(clean);
+    await upsertPrefs(userId, clean);
     return NextResponse.json({ ok: true, saved: clean.length });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

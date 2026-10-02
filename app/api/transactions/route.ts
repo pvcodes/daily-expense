@@ -1,27 +1,56 @@
 import { NextResponse } from "next/server";
 import {
-  initSchema,
+  initSchemaOnce,
   listTransactions,
   upsertMany,
   deleteTransactions,
   clearAllTransactions,
   countTransactions,
+  seedCustomCategories,
+  applyRecurring,
 } from "@/lib/db";
+import { sessionUserId } from "@/lib/auth";
 import type { Transaction } from "@/lib/types";
 
 async function ensureSchema() {
   try {
-    await initSchema();
+    await initSchemaOnce();
   } catch {
     // schema race between cold starts is fine; queries will still work
   }
 }
 
-export async function GET() {
+const unauthorized = () =>
+  NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+/**
+ * Adopting the categories already in the ledger as user-added ones is a
+ * one-shot per user: seedCustomCategories checks for its own marker row, so
+ * repeat calls cost one indexed lookup and then do nothing.
+ */
+async function seedCategories(userId: string) {
+  try {
+    await seedCustomCategories(userId);
+  } catch {
+    // non-fatal: the client still falls back to the defaults
+  }
+}
+
+export async function GET(request: Request) {
+  const userId = await sessionUserId(request);
+  if (!userId) return unauthorized();
   try {
     await ensureSchema();
-    const txs = await listTransactions();
-    const count = await countTransactions();
+    await Promise.all([
+      seedCategories(userId),
+      applyRecurring(userId).catch(() => {
+        // non-fatal: recurring catch-up must never break listing
+      }),
+    ]);
+    const [txs, count] = await Promise.all([
+      listTransactions(userId),
+      countTransactions(userId),
+    ]);
     return NextResponse.json({ transactions: txs, count });
   } catch (e) {
     return NextResponse.json(
@@ -32,14 +61,17 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const userId = await sessionUserId(request);
+  if (!userId) return unauthorized();
   try {
     const body = await request.json();
-    const txs: Transaction[] = Array.isArray(body) ? body : body?.transactions;
+    const txs: Transaction[] = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.transactions)
+      ? body.transactions
+      : [];
     const deleteIds: unknown[] = Array.isArray(body?.deleteIds) ? body.deleteIds : [];
-    if (
-      (!Array.isArray(txs) || txs.length === 0) &&
-      deleteIds.length === 0
-    ) {
+    if (txs.length === 0 && deleteIds.length === 0) {
       return NextResponse.json({ error: "No transactions provided" }, { status: 400 });
     }
     if (txs.length > 20000 || deleteIds.length > 20000) {
@@ -81,19 +113,21 @@ export async function POST(request: Request) {
     const delSet = new Set(deleteIds as string[]);
     const toUpsert = txs.filter((t) => !delSet.has(t.id));
     await ensureSchema();
-    await upsertMany(toUpsert);
-    await deleteTransactions(deleteIds as string[]);
-    const count = await countTransactions();
+    await upsertMany(userId, toUpsert);
+    await deleteTransactions(userId, deleteIds as string[]);
+    const count = await countTransactions(userId);
     return NextResponse.json({ ok: true, count, upserted: txs.length });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const userId = await sessionUserId(request);
+  if (!userId) return unauthorized();
   try {
     await ensureSchema();
-    await clearAllTransactions();
+    await clearAllTransactions(userId);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

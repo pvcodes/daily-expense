@@ -1,6 +1,6 @@
 # Expense Tracker App
 
-Mobile-first PWA expense tracker built on Next.js 16 (App Router), React 19, Tailwind CSS v4, and Recharts. Cloud-first: transactions live in Neon Postgres and sync across devices; only UI preferences (theme, accent, widgets) stay in localStorage.
+Multi-user PWA expense tracker built on Next.js 16 (App Router), React 19, Tailwind CSS v4, and Recharts. Cloud-first: transactions live in Neon Postgres and sync across devices. Accounts come from `APP_USERS` (env, `id:passcode` list) and every row is scoped by `user_id`, so two people can share one deployment without seeing each other's data.
 
 ## Run
 
@@ -30,6 +30,7 @@ app/
   manifest.ts       # PWA manifest (static route)
 components/
   BottomNav.tsx            # mobile bottom nav (Home/Txns/Categories/Settings)
+  CategoryPicker.tsx       # category chips + inline "create category" input
   Charts.tsx               # Recharts: CategoryBars, SpendingTrend
   MonthSummary.tsx         # home hero: month spent, delta, today, income/net, sync pill
   AddExpense.tsx           # FAB + bottom-sheet quick-add expense
@@ -42,30 +43,57 @@ hooks/
   useExpenses.tsx          # cloud-first context: fetches /api/transactions, optimistic add/delete/clear
   sync.ts                  # fetchRemote/pushRemote/clearRemote (throw with .status; fetchRemote returns .offline)
   useNetworkStatus.ts      # navigator.onLine + online/offline listeners
+  useSessionUser.ts        # GET /api/auth/session -> who the cookie belongs to (settings "Account" card)
   useUserPrefs.ts          # settings synced to server DB (localStorage-first, flush debounced)
+  useCategories.ts         # 5 defaults + the user's own categories (synced pref)
 lib/
+  users.ts                 # APP_USERS parsing + passcode -> user lookup (server-only)
+  auth.ts                  # HMAC cookie carrying the user id + rate limiting
   types.ts                 # Transaction + CATEGORIES + CATEGORY_COLORS
-  db.ts                    # Neon Postgres: initSchema, upsertMany, deleteTransactions, list, prefs
+  db.ts                    # Neon Postgres, every fn takes userId: initSchema, upsertMany, deleteTransactions, list, prefs
   import.ts                # CSV parse (Expenses 4-col + legacy 17-col), CSV/JSON export
   analytics.ts             # monthly/category/daily aggregations
   format.ts                # INR currency + date formatting
+  storage.ts               # localStorage + Cache Storage purge helpers
 proxy.ts                   # auth gate: redirects pages to /login, 401s /api
 app/api/
   transactions/route.ts    # GET list, POST upsert(+deleteIds), DELETE clear
-  auth/                    # password login/logout (cookie app_auth, rate-limited)
+  auth/                    # password login/logout/session (cookie app_auth, login rate-limited)
   prefs/route.ts           # GET/PUT user prefs DB sync
 scripts/
-  seed-db.ts               # seed DB from CSV
-  cli-expense.ts           # interactive CLI → inserts straight into DB (npm run expense)
+  seed-db.ts               # seed DB from CSV (--user <id>)
+  cli-expense.ts           # interactive CLI → inserts straight into DB (npm run expense, --user <id>)
+  export-csv.ts            # dump one user's ledger to CSV
 public/
-  sw.js                    # hand-rolled service worker (offline, SWR; v4 caches /api/transactions network-first)
+  sw.js                    # hand-rolled service worker (offline, SWR; v5 caches /api/transactions network-first)
   icons/                   # generated PWA icons (₹ mark)
 ```
+
+## Categories
+
+- `DEFAULT_CATEGORIES` (lib/types.ts) = Eat Out, Bills, Transport, Groceries, Shopping — the buckets that dominate personal spending (BEA PCE majors, YNAB's "frequent" group).
+- Users add their own via `hooks/useCategories.ts`, stored in the `expense-tracker.customCats.v1` pref (per user, localStorage-first, synced to the DB). Names are trimmed, capped at 24 chars and de-duplicated case-insensitively.
+- `seedCustomCategories()` (lib/db.ts, called from GET /api/transactions) adopts the categories already in a user's ledger as their own, once — so shrinking the defaults never orphans past rows. Overlap with a default is fine and not duplicated.
+- Picking a category that is only in the ledger (imported CSV) still shows as a chip; the transactions filter appends any such extras so nothing is unreachable.
+- `categoryColor()` gives known categories a fixed color and hashes unknown names onto a palette, so custom categories are distinguishable in charts.
+- Adding a new pref key means adding it to `ALLOWED_KEYS` in app/api/prefs/route.ts **and** `PREF_KEYS` in hooks/useUserPrefs.ts, or the PUT is rejected.
 
 ## Data model
 
 `Transaction = { id, date (yyyy-MM-dd), time (HH:mm[:ss]), category, price, currency, notes }`
 Price is negative for expenses, positive for income.
+
+`transactions` and `user_prefs` are keyed on `(user_id, id)` / `(user_id, key)` — ids and pref keys are only unique per person. `initSchema()` migrates in place and claims legacy rows as `me`.
+
+## Multi-user auth
+
+- `APP_USERS="me:<passcode>,bubu:<passcode>"` in `.env` (and in Vercel env). Falls back to single-user `APP_PASSWORD` -> id `me`.
+- Login is passcode-only: `authenticate()` maps a passcode to its account, then the signed `app_auth` cookie carries that id.
+- `GET /api/auth/session` returns `{ user }` for the current cookie (401 otherwise) so Settings can say who is signed in. Log out lives in the top "Account" card of /settings; it purges user-scoped caches before clearing the cookie.
+- Every API route resolves the user with `sessionUserId(request)` (lib/auth.ts) and passes it to `lib/db.ts`. Never query without it.
+- `APP_SECRET` signs the cookie (falls back to `APP_PASSWORD`). Removing someone from `APP_USERS` invalidates their cookie on next request.
+- Cached `/api/transactions` responses and rendered pages are per-browser, not per-user, so `purgeUserScopedState()` (lib/storage.ts) runs on login and logout. Bump `CACHE` in `public/sw.js` on changes that could serve another user's data.
+- CLI scripts take `--user <id>` (`npm run seed -- --user bubu`, `npm run expense -- --user bubu`).
 
 ## CSV format (4 columns)
 

@@ -1,3 +1,5 @@
+import { constantTimeEq, isKnownUser, USER_ID_RE } from "./users";
+
 export const AUTH_COOKIE = "app_auth";
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -9,7 +11,9 @@ function toBase64Url(buf: ArrayBuffer): string {
 }
 
 async function hmac(payload: string): Promise<string> {
-  const secret = process.env.APP_PASSWORD || "";
+  // APP_SECRET is preferred; APP_PASSWORD stays as the fallback so existing
+  // deployments keep working without adding another variable.
+  const secret = process.env.APP_SECRET || process.env.APP_PASSWORD || "";
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -25,34 +29,48 @@ async function hmac(payload: string): Promise<string> {
   return toBase64Url(sig);
 }
 
-function constantTimeEq(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-export async function createAuthToken(): Promise<string> {
+export async function createAuthToken(userId: string): Promise<string> {
+  if (!USER_ID_RE.test(userId)) throw new Error(`Invalid user id: ${userId}`);
   const exp = Date.now() + MAX_AGE_MS;
-  const payload = `me.${exp}`;
+  const payload = `${userId}.${exp}`;
   const mac = await hmac(payload);
   return `${payload}.${mac}`;
 }
 
-export async function verifyAuthToken(token: string): Promise<boolean> {
+/**
+ * Returns the signed-in user id, or null when the cookie is missing, tampered
+ * with, expired, or names a user that no longer exists in APP_USERS.
+ */
+export async function verifyAuthToken(
+  token: string | undefined | null
+): Promise<string | null> {
+  if (!token) return null;
   const parts = token.split(".");
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return null;
   const [id, expStr, mac] = parts;
   const exp = Number(expStr);
-  if (id !== "me" || !Number.isFinite(exp) || exp < Date.now()) return false;
+  if (!USER_ID_RE.test(id)) return null;
+  if (!Number.isFinite(exp) || exp < Date.now()) return null;
   const expected = await hmac(`${id}.${expStr}`);
-  return constantTimeEq(mac, expected);
+  if (!constantTimeEq(mac, expected)) return null;
+  return isKnownUser(id) ? id : null;
 }
 
-export function checkPassword(input: string): boolean {
-  const expected = process.env.APP_PASSWORD || "";
-  if (!expected || input.length !== expected.length) return false;
-  return constantTimeEq(input, expected);
+function readCookie(req: Request, name: string): string | undefined {
+  const header = req.headers.get("cookie");
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() !== name) continue;
+    return decodeURIComponent(part.slice(eq + 1).trim());
+  }
+  return undefined;
+}
+
+/** User id behind a request, or null if unauthenticated. */
+export async function sessionUserId(req: Request): Promise<string | null> {
+  return verifyAuthToken(readCookie(req, AUTH_COOKIE));
 }
 
 // In-memory per-IP limiter for auth attempts. Vercel serverless instances are

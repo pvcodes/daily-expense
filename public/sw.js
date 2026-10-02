@@ -1,4 +1,4 @@
-const CACHE = "expense-tracker-v4";
+const CACHE = "expense-tracker-v5";
 // App shell only. Do NOT precache "/" — it 307-redirects to /login when
 // unauthenticated and cache.addAll rejects non-200, failing install.
 const PRECACHE = [
@@ -8,6 +8,11 @@ const PRECACHE = [
 ];
 
 const TXN_PATH = "/api/transactions";
+
+// Caches below are per-browser, not per-user: whoever signs in last sees them
+// offline. The app therefore purges Cache Storage on login and logout
+// (see purgeUserScopedState in lib/storage.ts). Bump CACHE on any change that
+// could serve another user's stored data.
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

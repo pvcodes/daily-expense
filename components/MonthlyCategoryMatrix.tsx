@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Transaction } from "@/lib/types";
-import { CATEGORY_COLORS } from "@/lib/types";
+import { categoryColor } from "@/lib/types";
 import { categoryMonthMatrix } from "@/lib/analytics";
 import { formatMoney } from "@/lib/format";
 
@@ -53,7 +53,7 @@ export default function MonthlyCategoryMatrix({
                 <span className="flex items-center gap-1.5 text-sm text-ink">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: CATEGORY_COLORS[r.name] || "#64748b" }}
+                    style={{ background: categoryColor(r.name) }}
                   />
                   <span className="truncate">{r.name}</span>
                 </span>

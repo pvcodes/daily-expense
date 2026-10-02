@@ -1,21 +1,15 @@
 import { createInterface } from "readline";
 import { initSchema, upsertMany } from "../lib/db";
+import { requireUser } from "../lib/users";
+import { DEFAULT_CATEGORIES, normalizeCategory, sameCategory } from "../lib/types";
 import type { Transaction } from "../lib/types";
 
-const CATEGORIES = [
-  "Chai",
-  "Eat Out",
-  "Fashion",
-  "Food",
-  "Groceries",
-  "Misc",
-  "Shopping",
-  "Subscriptions",
-  "Transport",
-  "Utilities",
-];
-
 const BATCH_SIZE = 25;
+
+/** Reuse the canonical spelling of a default ("transport" -> "Transport"). */
+function matchDefaultSpelling(name: string): string {
+  return DEFAULT_CATEGORIES.find((c) => sameCategory(c, name)) || name;
+}
 const failed: Transaction[] = [];
 
 interface IO {
@@ -130,6 +124,10 @@ function openPiped(): IO {
 }
 
 async function main() {
+  const argv = process.argv.slice(2);
+  const userIdx = argv.indexOf("--user");
+  const userId = requireUser(userIdx >= 0 ? argv[userIdx + 1] : undefined);
+
   // Start schema init in the background — don't make the user wait for it.
   const schemaReady = initSchema();
 
@@ -158,7 +156,7 @@ async function main() {
       while (queue.length > 0) {
         const batch = queue.splice(0, BATCH_SIZE);
         try {
-          await upsertMany(batch);
+          await upsertMany(userId, batch);
           for (const tx of batch) io.status(pushedStatus(tx));
         } catch (e) {
           io.status(
@@ -186,10 +184,11 @@ async function main() {
   }
 
   io.log("💸 Expense Tracker CLI");
-  io.log("Enter expenses one after another. Leave Amount blank to finish.");
+  io.log(`Signed in as '${userId}'. Leave Amount blank to finish.`);
   io.log("");
   io.log("Categories:");
-  CATEGORIES.forEach((c, i) => io.log(`  ${i + 1}. ${c}`));
+  DEFAULT_CATEGORIES.forEach((c, i) => io.log(`  ${i + 1}. ${c}`));
+  io.log("  …or type any category name");
   io.log("");
 
   try {
@@ -205,10 +204,18 @@ async function main() {
         continue;
       }
 
-      const catChoice = (await io.ask(`Category [1-${CATEGORIES.length}] (default: 1): `)).trim();
+      const catChoice = (
+        await io.ask(`Category [1-${DEFAULT_CATEGORIES.length}] or a name (default: 1): `)
+      ).trim();
       if (aborted()) break;
+      // A number picks a default; anything else is taken as a category name so
+      // the CLI can use the same custom categories as the app.
       const catIdx = parseInt(catChoice, 10) - 1;
-      const category = CATEGORIES[catIdx >= 0 && catIdx < CATEGORIES.length ? catIdx : 0];
+      const category = catChoice
+        ? catIdx >= 0 && catIdx < DEFAULT_CATEGORIES.length
+          ? DEFAULT_CATEGORIES[catIdx]
+          : matchDefaultSpelling(normalizeCategory(catChoice)) || DEFAULT_CATEGORIES[0]
+        : DEFAULT_CATEGORIES[0];
 
       const now = new Date();
       const defaultDate = now.toISOString().slice(0, 10);

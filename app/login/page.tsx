@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { purgeUserScopedState } from "@/lib/storage";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
+        // Shared device: drop the previous user's cached pages/API responses
+        // before the new session renders anything.
+        await purgeUserScopedState();
         router.replace("/");
         router.refresh();
       } else {

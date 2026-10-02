@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useExpenses } from "@/hooks/useExpenses";
-import { CATEGORIES } from "@/lib/types";
+import { DEFAULT_CATEGORIES } from "@/lib/types";
+import CategoryPicker from "@/components/CategoryPicker";
 import { EmptyState, Section, Skeleton } from "@/components/ui";
 
 export default function TransactionEditPage() {
@@ -15,7 +16,9 @@ export default function TransactionEditPage() {
 
   const tx = transactions.find((t) => t.id === params.id);
   const [amount, setAmount] = useState(() => (tx ? String(Math.abs(tx.price)) : ""));
-  const [category, setCategory] = useState(() => tx?.category || CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(
+    () => tx?.category || DEFAULT_CATEGORIES[0]
+  );
   const [date, setDate] = useState(() => tx?.date || "");
   const [time, setTime] = useState(() => tx?.time && tx.time !== "00:00" ? tx.time.slice(0, 5) : "");
   const [notes, setNotes] = useState(() => tx?.notes || "");
@@ -99,22 +102,7 @@ export default function TransactionEditPage() {
             autoFocus
           />
 
-          <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCategory(c)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  category === c
-                    ? "bg-accent text-accent-ink"
-                    : "border border-line-strong bg-panel-2 text-ink-3"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <CategoryPicker value={category} onChange={setCategory} />
 
           <div className="grid grid-cols-2 gap-3">
             <input

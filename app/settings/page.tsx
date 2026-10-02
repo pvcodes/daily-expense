@@ -9,12 +9,14 @@ import AccentPicker from "@/components/AccentPicker";
 import { useWeeklyBudget } from "@/hooks/useWeeklyBudget";
 import { useWeekStart } from "@/hooks/useWeekStart";
 import { useHomeWidgets, HOME_WIDGETS } from "@/hooks/useHomeWidgets";
-import { clearLocalDataAndCache } from "@/lib/storage";
+import { useSessionUser } from "@/hooks/useSessionUser";
+import { clearLocalDataAndCache, purgeUserScopedState } from "@/lib/storage";
 
 export default function SettingsPage() {
   const { budget, setBudget } = useWeeklyBudget();
   const { weekStart, setWeekStart } = useWeekStart();
   const { enabled, toggle } = useHomeWidgets();
+  const { user: sessionUser, loading } = useSessionUser();
   const router = useRouter();
   const [budgetDraft, setBudgetDraft] = useState(
     budget > 0 ? String(budget) : ""
@@ -22,6 +24,9 @@ export default function SettingsPage() {
   const [clearing, setClearing] = useState(false);
 
   async function logout() {
+    // Wipe this device's cached pages/API responses first so the next person
+    // who signs in can never read them offline.
+    await purgeUserScopedState();
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {
@@ -58,6 +63,29 @@ export default function SettingsPage() {
       <header>
         <h1 className="text-2xl font-bold text-ink">Settings</h1>
       </header>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+        <div>
+          <h2 className="text-sm font-semibold text-ink">Account</h2>
+          <p className="mt-0.5 truncate text-xs text-ink-3">
+            {sessionUser
+              ? `Signed in as ${sessionUser} — this ledger only`
+              : loading
+                ? "Checking session…"
+                : "Signed in"}
+          </p>
+        </div>
+        <button
+          onClick={logout}
+          className="w-full rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
+        >
+          Log out
+        </button>
+        <p className="text-xs text-ink-3">
+          Logging out clears this device&apos;s cached data so the next person
+          can&apos;t see it. Your transactions stay on the server.
+        </p>
+      </div>
 
       <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
         <h2 className="text-sm font-semibold text-ink">Weekly budget</h2>
@@ -175,19 +203,6 @@ export default function SettingsPage() {
           className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 active:scale-[0.98] disabled:opacity-50 dark:border-red-800 dark:text-red-300"
         >
           {clearing ? "Clearing…" : "Clear local data & cache"}
-        </button>
-      </div>
-
-      <div className="rounded-2xl border border-line bg-panel p-4">
-        <h2 className="mb-1 text-sm font-semibold text-ink">Account</h2>
-        <p className="mb-3 text-xs text-ink-3">
-          You&apos;re signed in as the owner.
-        </p>
-        <button
-          onClick={logout}
-          className="w-full rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
-        >
-          Log out
         </button>
       </div>
 
