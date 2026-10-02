@@ -2,21 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useWeekStart } from "@/hooks/useWeekStart";
 import { useUserPrefs } from "@/hooks/useUserPrefs";
-import { currentWeekStartISO } from "@/lib/analytics";
+import { currentMonthKey } from "@/lib/analytics";
 
 const KEY = "expense-tracker.budget.v1";
 
-export function useWeeklyBudget() {
+export function useMonthlyBudget() {
   const { transactions } = useExpenses();
-  const { weekStart } = useWeekStart();
   const { set: setServer } = useUserPrefs();
   const [budget, setBudgetState] = useState<number>(0);
-  const weekStartDate = useMemo(
-    () => currentWeekStartISO(weekStart),
-    [weekStart]
-  );
+  const monthKey = useMemo(() => currentMonthKey(), []);
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -44,12 +39,11 @@ export function useWeeklyBudget() {
   );
 
   const spent = useMemo(() => {
-    const start = currentWeekStartISO(weekStart);
     return transactions.reduce(
-      (s, t) => (t.price < 0 && t.date >= start ? s + -t.price : s),
+      (s, t) => (t.price < 0 && t.date.startsWith(monthKey) ? s + -t.price : s),
       0
     );
-  }, [transactions, weekStart]);
+  }, [transactions, monthKey]);
 
-  return { budget, setBudget, spent, weekStart, weekStartDate };
+  return { budget, setBudget, spent, monthKey };
 }

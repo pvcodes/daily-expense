@@ -48,8 +48,9 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <main className="flex-1 space-y-2 p-4 pt-6">
-        <h1 className="text-2xl font-bold">Categories</h1>
+      <main className="flex-1 space-y-3 p-4 pt-5">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Spending map</p>
+        <h1 className="text-3xl font-black tracking-tight">Categories</h1>
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-14 w-full" />
         ))}
@@ -59,14 +60,15 @@ export default function CategoriesPage() {
 
   if (cats.length === 0) {
     return (
-      <main className="flex-1 space-y-3 p-4 pt-6">
-        <h1 className="text-2xl font-bold">Categories</h1>
+      <main className="flex-1 space-y-3 p-4 pt-5">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Spending map</p>
+        <h1 className="text-3xl font-black tracking-tight">Categories</h1>
         <p className="text-sm text-ink-3">
           No expenses yet. Add one with the + button or import a CSV to see
           category breakdowns.
         </p>
         {managing && (
-          <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+          <div className="card space-y-3 p-4">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -85,14 +87,14 @@ export default function CategoriesPage() {
                     submitNew();
                   }
                 }}
-                className={`min-w-0 flex-1 rounded-xl border bg-panel-2 px-3 py-2 text-sm placeholder:text-ink-3 focus:outline-none ${
+                className={`field min-w-0 flex-1 py-2 text-sm ${
                   error ? "border-red-400" : "border-line focus:border-accent"
                 }`}
               />
               <button
                 onClick={submitNew}
                 disabled={!draft.trim()}
-                className="shrink-0 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-accent-ink disabled:opacity-50"
+                className="btn-primary shrink-0 px-3 py-2 text-sm"
               >
                 Add
               </button>
@@ -109,7 +111,7 @@ export default function CategoriesPage() {
           aria-expanded={managing}
           className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold ${
             managing
-              ? "bg-accent text-accent-ink"
+              ? "chip-active"
               : "border border-line-strong bg-panel-2 text-ink-3"
           }`}
         >
@@ -120,11 +122,12 @@ export default function CategoriesPage() {
   }
 
   return (
-    <main className="flex-1 space-y-3 p-4 pt-6">
+    <main className="flex-1 space-y-4 p-4 pt-5 sm:p-5">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Categories</h1>
-          <p className="text-sm text-ink-3">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Spending map</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">Categories</h1>
+          <p className="mt-1 text-sm text-ink-3">
             {cats.length} categories, tap to see notes
           </p>
         </div>
@@ -133,7 +136,7 @@ export default function CategoriesPage() {
           aria-expanded={managing}
           className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
             managing
-              ? "bg-accent text-accent-ink"
+              ? "chip-active"
               : "border border-line-strong bg-panel-2 text-ink-3"
           }`}
         >
@@ -142,7 +145,7 @@ export default function CategoriesPage() {
       </header>
 
       {managing && (
-        <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+        <div className="card space-y-3 p-4">
           <div>
             <p className="text-sm font-semibold">Add a category</p>
             <p className="mt-0.5 text-xs text-ink-3">
@@ -169,14 +172,14 @@ export default function CategoriesPage() {
                   submitNew();
                 }
               }}
-              className={`min-w-0 flex-1 rounded-xl border bg-panel-2 px-3 py-2 text-sm placeholder:text-ink-3 focus:outline-none ${
+              className={`field min-w-0 flex-1 py-2 text-sm ${
                 error ? "border-red-400" : "border-line focus:border-accent"
               }`}
             />
             <button
               onClick={submitNew}
               disabled={!draft.trim()}
-              className="shrink-0 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-accent-ink disabled:opacity-50"
+              className="btn-primary shrink-0 px-3 py-2 text-sm"
             >
               Add
             </button>

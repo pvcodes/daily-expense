@@ -32,9 +32,9 @@ components/
   BottomNav.tsx            # mobile bottom nav (Home/Txns/Categories/Settings)
   CategoryPicker.tsx       # category chips + inline "create category" input
   Charts.tsx               # Recharts: CategoryBars, SpendingTrend
-  MonthSummary.tsx         # home hero: month spent, delta, today, income/net, sync pill
+  MonthSummary.tsx         # home hero: month spent, same-date comparison, daily spend, sync pill
   AddExpense.tsx           # FAB + bottom-sheet quick-add expense
-  WeeklyBudget.tsx         # slim weekly-budget progress
+  MonthlyBudget.tsx       # slim monthly-budget progress
   OfflineBanner.tsx        # amber banner when cached data is showing
   ui.tsx                   # shared Section / Skeleton / EmptyState primitives
   ImportExport.tsx         # CSV/JSON import + export + clear
@@ -107,7 +107,7 @@ Importer also accepts legacy 17-column format (account/amount/currency/title/...
 ## PWA / iOS notes
 
 - `app/manifest.ts` + `public/sw.js` = installable PWA; iOS uses `appleWebApp` + `apple-touch-icon.png`.
-- Data lives in Neon Postgres (transactions table). Only UI prefs (theme, accent, weekly budget, widgets, page filters) use localStorage and sync to the DB via `useUserPrefs`.
+- Data lives in Neon Postgres (transactions table). Only UI prefs (theme, accent, monthly budget, widgets, page filters) use localStorage and sync to the DB via `useUserPrefs`.
 - iOS-installed app: Share → Add to Home Screen. Status bar is black-translucent.
 <!-- dgc-policy-v11 -->
 # Dual-Graph Context Policy

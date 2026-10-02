@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     }
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta)
-      meta.setAttribute("content", t === "dark" ? "#09090b" : "#f6f6f7");
+      meta.setAttribute("content", t === "dark" ? "#0a0d14" : "#f6f7f9");
     const sb = document.querySelector(
       'meta[name="apple-mobile-web-app-status-bar-style"]'
     );
@@ -36,7 +36,7 @@ export default function ThemeToggle() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-panel-2 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-2xl border-[1.5px] border-line-strong bg-panel-2 p-1">
       {(["light", "dark"] as const).map((t) => (
         <button
           key={t}

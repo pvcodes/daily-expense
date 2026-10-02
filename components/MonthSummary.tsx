@@ -13,7 +13,7 @@ function SyncPill() {
 
   if (offlineShowing) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-panel px-2.5 py-1 text-[11px] font-medium text-ink-3">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
         Offline · cached
       </span>
@@ -21,14 +21,14 @@ function SyncPill() {
   }
   if (lastSyncAt == null) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-panel px-2.5 py-1 text-[11px] font-medium text-ink-3">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ink-3" />
         Loading…
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-panel px-2.5 py-1 text-[11px] font-medium text-ink-3">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
       <span className="h-1.5 w-1.5 rounded-full bg-accent" />
       Updated {new Date(lastSyncAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
     </span>
@@ -37,7 +37,7 @@ function SyncPill() {
 
 export default function MonthSummary() {
   const { transactions } = useExpenses();
-  const { spend, income, net } = useMemo(
+  const { spend } = useMemo(
     () => monthSummary(transactions),
     [transactions]
   );
@@ -50,7 +50,7 @@ export default function MonthSummary() {
     const d = String(now.getDate()).padStart(2, "0");
     const key = `${y}-${m}-${d}`;
     return transactions.reduce(
-      (sum, t) => (t.date === key ? sum + Math.abs(t.price) : sum),
+      (sum, t) => (t.date === key && t.price < 0 ? sum - t.price : sum),
       0
     );
   }, [transactions]);
@@ -58,57 +58,48 @@ export default function MonthSummary() {
   const up = pct !== null && pct > 0;
 
   return (
-    <header className="px-1 pb-2 pt-1">
+    <header className="relative overflow-hidden rounded-[1.75rem] bg-panel px-5 pb-5 pt-5 shadow-[var(--card-shadow)]">
+      <div aria-hidden="true" className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-accent opacity-15 blur-2xl" />
+      <div className="relative">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-3">
-            Spent in {currentMonthLabel()}
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-ink-3">
+            Spent this month
           </p>
-          <h1 className="mt-1 truncate text-[2.75rem] font-bold leading-none tracking-tight tabular-nums text-ink">
+          <h1 className="mt-3 truncate text-[2.8rem] font-black leading-none tracking-[-0.07em] tabular-nums sm:text-5xl">
             {formatMoney(spend)}
           </h1>
         </div>
-        <div className="pt-1">
+        <div className="pt-1 text-right">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-3">{currentMonthLabel()}</p>
           <SyncPill />
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs">
-        {pct !== null && (
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${
-              up
-                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                : "bg-accent/10 text-accent-text"
-            }`}
-          >
-            {up ? "Up" : "Down"} {Math.abs(pct)}% vs last month
-          </span>
-        )}
-        {todayTotal > 0 && (
-          <span className="text-ink-2">
-            Today <b className="font-semibold text-ink">{formatMoney(todayTotal)}</b>
-          </span>
-        )}
-        <span aria-hidden className="text-ink-3">
-          ·
+      {pct !== null && (
+        <span
+          className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+            up ? "bg-bad/10 text-bad" : "bg-good/10 text-good"
+          }`}
+        >
+          {up ? "▲" : "▼"} {Math.abs(pct)}% vs same dates last month
         </span>
-        <span className="text-ink-2">
-          Income <b className="font-semibold text-accent-text">{formatMoney(income)}</b>
-        </span>
-        <span aria-hidden className="text-ink-3">
-          ·
-        </span>
-        <span className="text-ink-2">
-          Net{" "}
-          <b
-            className={`font-semibold ${
-              net >= 0 ? "text-accent-text" : "text-rose-500 dark:text-rose-400"
-            }`}
-          >
-            {formatMoney(net)}
-          </b>
-        </span>
+      )}
+
+      <div className="mt-5 grid grid-cols-2 gap-2 border-t border-line pt-4">
+        <div className="rounded-2xl bg-panel-2 px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-3">Today</p>
+          <p className="mt-0.5 truncate text-sm font-bold tabular-nums text-ink">
+            {todayTotal > 0 ? formatMoney(todayTotal) : "—"}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-panel-2 px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-3">Daily average</p>
+          <p className="mt-0.5 truncate text-sm font-bold tabular-nums text-ink">
+            {formatMoney(spend / new Date().getDate())}
+          </p>
+        </div>
+      </div>
       </div>
     </header>
   );

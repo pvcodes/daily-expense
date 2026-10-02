@@ -2,7 +2,7 @@
 
 A privacy-first, mobile-first expense tracker PWA. Built with **Next.js App Router**, **React 19**, **Tailwind CSS v4**, and **Recharts**.
 
-Data lives in **Neon Postgres** (cloud-first) and syncs across devices. Only UI preferences (theme, accent, weekly budget, widgets) stay in local storage; a service worker caches the last synced data so the app works offline as an installable PWA.
+Data lives in **Neon Postgres** (cloud-first) and syncs across devices. Only UI preferences (theme, accent, monthly budget, widgets) stay in local storage; a service worker caches the last synced data so the app works offline as an installable PWA.
 
 ![Stack](https://img.shields.io/badge/Next.js-16-black) ![React](https://img.shields.io/badge/React-19-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-v4-38bdf8) ![SQLite_icons](https://img.shields.io/badge/DB-Neon%20Postgres-00e4bc)
 
@@ -12,7 +12,7 @@ Data lives in **Neon Postgres** (cloud-first) and syncs across devices. Only UI 
 - Dashboard: monthly hero vs. previous month, spend trend chart (Week/Month/Quarter/Year/All), top categories, last-5 recent
 - Transactions list with category filter + note search
 - Categories → notes drill-down
-- Weekly budget that respects your **week start day** (Mon or Sun, configurable in Settings)
+- Monthly budget vs. this month's spending (target set in Settings)
 - Import/export CSV + JSON, clear-all (with configurable accent themes)
 - Installable PWA (manifest + hand-rolled service worker, offline-first SWR caching)
 - Passcode-protected API (rate-limited) that mirrors local data to Neon Postgres
@@ -91,8 +91,8 @@ app/
   manifest.ts           # PWA manifest (static route)
   api/                  # password auth + transactions sync (Neon Postgres)
 components/
-  MonthSummary.tsx     # home hero: month spent, delta, today, income/net, sync pill
-  WeeklyBudget.tsx     # slim budget vs. week-start-aware spending progress
+  MonthSummary.tsx     # home hero: month spent, same-date comparison, daily spend, sync pill
+  MonthlyBudget.tsx    # slim budget vs. this month's spending
   SpendingTrend.tsx    # lazy Recharts area chart (Day/Week/Month/...)
   Charts.tsx           # ranked category bars
   AddExpense.tsx       # FAB + bottom-sheet quick-add
@@ -104,7 +104,7 @@ hooks/
   useNetworkStatus.ts  # navigator.onLine + listeners
   useSessionUser.ts    # who the auth cookie belongs to
   useWeekStart.ts      # week start day setting
-  useWeeklyBudget.ts   # budget state
+  useMonthlyBudget.ts  # budget state
   sync.ts              # fetchRemote/pushRemote/clearRemote (fetchRemote returns .offline)
 lib/
   types.ts              # Transaction + default categories/colors

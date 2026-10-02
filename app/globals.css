@@ -2,112 +2,59 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* A punchy, warm neutral base with acid-lime actions. */
 :root {
-  --canvas: #f6f6f7;
-  --panel: #fdfdfd;
-  --panel-2: #ececee;
-  --line: #e4e4e7;
-  --line-strong: #d4d4d8;
-  --ink: #19191c;
-  --ink-2: #52525b;
-  --ink-3: #71717a;
-  --background: #f6f6f7;
-  --foreground: #19191c;
+  --canvas: oklch(96.5% 0.018 92);
+  --panel: oklch(99% 0.008 92);
+  --panel-2: oklch(93% 0.025 92);
+  --line: oklch(88% 0.025 92);
+  --line-strong: oklch(78% 0.035 92);
+  --ink: oklch(20% 0.025 250);
+  --ink-2: oklch(40% 0.03 250);
+  --ink-3: oklch(55% 0.025 250);
+  --background: var(--canvas);
+  --foreground: var(--ink);
 
-  --accent: #10b981;
-  --accent-strong: #059669;
-  --accent-ink: #022c22;
-  --accent-soft: #ecfdf5;
-  --accent-border: #a7f3d0;
-  --accent-text: #047857;
+  --accent: oklch(84% 0.23 128);
+  --accent-2: oklch(75% 0.2 128);
+  --accent-strong: oklch(48% 0.16 135);
+  --accent-ink: oklch(18% 0.035 145);
+  --accent-soft: oklch(92% 0.1 128);
+  --accent-border: oklch(78% 0.15 128);
+  --accent-text: oklch(38% 0.13 138);
+
+  --good: oklch(52% 0.14 155);
+  --bad: oklch(56% 0.2 25);
+  --card-shadow: 0 12px 32px oklch(25% 0.03 250 / 0.08);
 
   color-scheme: light;
 }
 
 .dark {
-  --canvas: #09090b;
-  --panel: #18181b;
-  --panel-2: #27272a;
-  --line: #27272a;
-  --line-strong: #3f3f46;
-  --ink: #fafafa;
-  --ink-2: #a1a1aa;
-  --ink-3: #71717a;
-  --background: #09090b;
-  --foreground: #fafafa;
+  --canvas: oklch(15% 0.018 250);
+  --panel: oklch(19% 0.022 250);
+  --panel-2: oklch(23% 0.025 250);
+  --line: oklch(29% 0.025 250);
+  --line-strong: oklch(37% 0.03 250);
+  --ink: oklch(94% 0.012 92);
+  --ink-2: oklch(75% 0.02 92);
+  --ink-3: oklch(62% 0.025 250);
+  --background: var(--canvas);
+  --foreground: var(--ink);
 
-  --accent: #10b981;
-  --accent-strong: #34d399;
-  --accent-ink: #022c22;
-  --accent-soft: #022c22;
-  --accent-border: #065f46;
-  --accent-text: #6ee7b7;
+  --accent: oklch(88% 0.23 128);
+  --accent-2: oklch(80% 0.21 128);
+  --accent-strong: oklch(88% 0.23 128);
+  --accent-ink: oklch(19% 0.035 145);
+  --accent-soft: oklch(28% 0.08 135);
+  --accent-border: oklch(42% 0.12 135);
+  --accent-text: oklch(88% 0.23 128);
+
+  --good: oklch(76% 0.16 155);
+  --bad: oklch(72% 0.18 25);
+  --card-shadow: 0 16px 38px oklch(5% 0.02 250 / 0.28);
 
   color-scheme: dark;
-}
-
-html[data-accent="blue"] {
-  --accent: #2563eb;
-  --accent-strong: #3b82f6;
-  --accent-ink: #ffffff;
-  --accent-soft: #eff6ff;
-  --accent-border: #bfdbfe;
-  --accent-text: #1d4ed8;
-}
-html[data-accent="blue"].dark {
-  --accent-strong: #93c5fd;
-  --accent-ink: #ffffff;
-  --accent-soft: #1e3a8a;
-  --accent-border: #1d4ed8;
-  --accent-text: #93c5fd;
-}
-
-html[data-accent="violet"] {
-  --accent: #8b5cf6;
-  --accent-strong: #7c3aed;
-  --accent-ink: #2e1065;
-  --accent-soft: #f5f3ff;
-  --accent-border: #ddd6fe;
-  --accent-text: #6d28d9;
-}
-html[data-accent="violet"].dark {
-  --accent-strong: #a78bfa;
-  --accent-ink: #4c1d95;
-  --accent-soft: #4c1d95;
-  --accent-border: #6d28d9;
-  --accent-text: #c4b5fd;
-}
-
-html[data-accent="rose"] {
-  --accent: #f43f5e;
-  --accent-strong: #e11d48;
-  --accent-ink: #4c0519;
-  --accent-soft: #fff1f2;
-  --accent-border: #fecdd3;
-  --accent-text: #be123c;
-}
-html[data-accent="rose"].dark {
-  --accent-strong: #fb7185;
-  --accent-ink: #881337;
-  --accent-soft: #881337;
-  --accent-border: #be123c;
-  --accent-text: #fda4af;
-}
-
-html[data-accent="amber"] {
-  --accent: #f59e0b;
-  --accent-strong: #d97706;
-  --accent-ink: #451a03;
-  --accent-soft: #fffbeb;
-  --accent-border: #fde68a;
-  --accent-text: #b45309;
-}
-html[data-accent="amber"].dark {
-  --accent-strong: #fbbf24;
-  --accent-ink: #78350f;
-  --accent-soft: #78350f;
-  --accent-border: #b45309;
-  --accent-text: #fde68a;
 }
 
 @theme inline {
@@ -122,11 +69,14 @@ html[data-accent="amber"].dark {
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-strong: var(--accent-strong);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-border: var(--accent-border);
   --color-accent-text: var(--accent-text);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -135,6 +85,7 @@ html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
+  background: var(--canvas);
 }
 
 body {
@@ -142,18 +93,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100dvh;
-}
-
-/* Prevent pull-to-refresh interfering with the app on iOS standalone */
-body {
   overscroll-behavior-y: contain;
 }
 
-/* Keyboard focus must be visible and never rely on color alone (WCAG 1.4.11) */
 :focus-visible {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 :focus:not(:focus-visible) {
   outline: none;
@@ -162,10 +108,9 @@ body {
 input,
 select,
 textarea {
-  font-size: 16px; /* prevents iOS zoom on focus */
+  font-size: 16px;
 }
 
-/* Hide number input spinners for cleaner mobile UI */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -184,17 +129,81 @@ input[type="number"] {
   scrollbar-width: none;
 }
 
-/* Bottom-sheet quick-add: slide up and fade in (layout transform, not width) */
 @keyframes sheet-up {
-  from {
-    transform: translateY(100%);
-    opacity: 0.6;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(100%); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .animate-sheet-up {
   animation: sheet-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ---- Design kit ---- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 1.35rem;
+  box-shadow: var(--card-shadow);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  border-radius: 1rem;
+  min-height: 48px;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.btn-primary:active { transform: scale(0.97); filter: brightness(1.08); }
+.btn-primary:disabled { opacity: 0.5; }
+
+.btn-fab {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 28px oklch(84% 0.23 128 / 0.25);
+  transition: transform 0.12s ease;
+}
+.btn-fab:active { transform: scale(0.9); }
+
+.chip {
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.chip:active { transform: scale(0.95); }
+
+.chip-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.grad-text {
+  color: var(--accent);
+}
+
+.field {
+  border-radius: 1rem;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-2);
+  padding: 0.75rem 1rem;
+  transition: border-color 0.15s ease;
+}
+
+main > header h1 { letter-spacing: -0.045em; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+@media (min-width: 640px) {
+  body { background: var(--canvas); }
+}
+.field:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.9); }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.animate-pop { animation: pop 0.18s ease-out; }

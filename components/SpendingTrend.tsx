@@ -2,8 +2,8 @@
 
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -28,10 +28,10 @@ export default function SpendingTrend({ period }: { period: PeriodKey }) {
     [transactions, period, weekStart]
   );
 
-  if (data.length === 0) {
+  if (data.length === 0 || data.every((point) => point.spend === 0)) {
     return (
       <div className="flex h-52 items-center justify-center text-sm text-ink-3">
-        No data yet
+        No activity in this period
       </div>
     );
   }
@@ -39,31 +39,17 @@ export default function SpendingTrend({ period }: { period: PeriodKey }) {
   return (
     <div className="h-52">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-          <defs>
-            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor="var(--accent)"
-                stopOpacity={0.32}
-              />
-              <stop
-                offset="100%"
-                stopColor="var(--accent)"
-                stopOpacity={0}
-              />
-            </linearGradient>
-          </defs>
+        <BarChart accessibilityLayer data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
           <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="var(--line-strong)"
+            strokeDasharray="2 5"
+            stroke="var(--line)"
             vertical={false}
           />
           <XAxis
             dataKey="label"
             tick={{ fill: "var(--ink-3)", fontSize: 10 }}
             tickFormatter={axisLabel}
-            axisLine={{ stroke: "var(--line-strong)" }}
+            axisLine={false}
             tickLine={false}
             interval="preserveStartEnd"
           />
@@ -71,7 +57,7 @@ export default function SpendingTrend({ period }: { period: PeriodKey }) {
             tick={{ fill: "var(--ink-3)", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
-            width={36}
+            width={44}
             tickFormatter={(v: number) =>
               v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
             }
@@ -84,21 +70,19 @@ export default function SpendingTrend({ period }: { period: PeriodKey }) {
             contentStyle={{
               background: "var(--panel)",
               border: "1px solid var(--line-strong)",
-              borderRadius: 12,
+              borderRadius: 14,
               fontSize: 12,
             }}
             labelStyle={{ color: "var(--ink-2)" }}
           />
-          <Area
-            type="monotone"
+          <Bar
             dataKey="spend"
-            stroke="var(--accent)"
-            strokeWidth={2.5}
-            fill="url(#trendFill)"
-            dot={false}
-            activeDot={{ r: 4 }}
+            name="Out"
+            fill="var(--accent)"
+            radius={[6, 6, 0, 0]}
+            maxBarSize={30}
           />
-        </AreaChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

@@ -30,11 +30,13 @@ export default function ImportExport() {
         });
         return;
       }
-      addMany(result.transactions);
+      const addedNow = addMany(result.transactions);
+      const skipped = result.transactions.length - addedNow;
+      const dup = skipped > 0 ? ` ${skipped} duplicate${skipped === 1 ? "" : "s"} skipped.` : "";
       const warn = result.errors.length ? ` ${result.errors.length} rows skipped.` : "";
       setMessage({
         type: "ok",
-        text: `Imported ${result.transactions.length} transactions.${warn}`,
+        text: `Imported ${addedNow} transactions.${dup}${warn}`,
       });
     };
     reader.onerror = () => setMessage({ type: "err", text: "Failed to read file." });
@@ -44,7 +46,7 @@ export default function ImportExport() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-panel p-4">
+      <div className="card p-4">
         <h3 className="mb-1 text-sm font-semibold text-ink">Import CSV</h3>
         <p className="mb-3 text-xs text-ink-3">
           Expected columns: Date, Category, Price, Notes. Price is negative for
@@ -52,7 +54,7 @@ export default function ImportExport() {
         </p>
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-accent-ink active:scale-[0.98]"
+          className="btn-primary w-full py-3 text-sm"
         >
           Choose CSV file
         </button>
@@ -77,7 +79,7 @@ export default function ImportExport() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-line bg-panel p-4">
+      <div className="card p-4">
         <h3 className="mb-3 text-sm font-semibold text-ink">Export</h3>
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -88,7 +90,7 @@ export default function ImportExport() {
                 "text/csv"
               )
             }
-            className="rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
+            className="rounded-xl border-[1.5px] border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
           >
             CSV
           </button>
@@ -100,7 +102,7 @@ export default function ImportExport() {
                 "application/json"
               )
             }
-            className="rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
+            className="rounded-xl border-[1.5px] border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
           >
             JSON
           </button>
@@ -130,7 +132,7 @@ export default function ImportExport() {
             </button>
             <button
               onClick={() => setConfirmingClear(false)}
-              className="flex-1 rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
+              className="flex-1 rounded-xl border-[1.5px] border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
             >
               Cancel
             </button>

@@ -11,23 +11,18 @@ export const HOME_WIDGETS = [
   },
   {
     key: "weeklyBudget",
-    label: "Weekly budget",
-    description: "Progress against your weekly budget target",
+    label: "Monthly budget",
+    description: "Progress against your monthly budget target",
   },
   {
     key: "spendingTrend",
     label: "Spending trend",
-    description: "Chart of spending over time",
+    description: "Spending across 7 days, this month, and 6 months",
   },
   {
     key: "categoryBars",
-    label: "Where you spent",
-    description: "Ranked bars of spend by category this month",
-  },
-  {
-    key: "monthlyCategory",
-    label: "Month by category",
-    description: "Monthly spend per category, last 6 months",
+    label: "Categories this month",
+    description: "Rank this month's spending and show its share",
   },
   {
     key: "recent",

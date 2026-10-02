@@ -4,16 +4,14 @@ import { useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useExpenses } from "@/hooks/useExpenses";
-import { CategoryBars } from "@/components/Charts";
-import AddExpense from "@/components/AddExpense";
 import MonthSummary from "@/components/MonthSummary";
-import WeeklyBudget from "@/components/WeeklyBudget";
-import MonthlyCategoryMatrix from "@/components/MonthlyCategoryMatrix";
+import MonthlyBudget from "@/components/MonthlyBudget";
+import { CategoryBars } from "@/components/Charts";
 import { EmptyState, Section, Skeleton } from "@/components/ui";
 import { useHomeWidgets } from "@/hooks/useHomeWidgets";
 import { categoryColor } from "@/lib/types";
 import { currentMonthKey, type PeriodKey } from "@/lib/analytics";
-import { formatMoney, formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatMoney, formatTime, moneyWithSign } from "@/lib/format";
 import { useSyncedPref } from "@/hooks/useSyncedPref";
 
 const SpendingTrend = dynamic(
@@ -25,12 +23,9 @@ const SpendingTrend = dynamic(
 );
 
 const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: "day", label: "Day" },
-  { key: "week", label: "Week" },
-  { key: "month", label: "Month" },
-  { key: "quarter", label: "Quarter" },
-  { key: "year", label: "Year" },
-  { key: "all", label: "All" },
+  { key: "day", label: "7 days" },
+  { key: "month", label: "This month" },
+  { key: "all", label: "6 months" },
 ];
 
 export default function HomePage() {
@@ -40,6 +35,13 @@ export default function HomePage() {
     "expense-tracker.period",
     "month"
   );
+  const activePeriod: PeriodKey = period === "day" || period === "month" || period === "all"
+    ? period
+    : period === "week"
+      ? "day"
+      : period === "quarter" || period === "year"
+        ? "all"
+        : "month";
 
   const monthKey = useMemo(() => currentMonthKey(), []);
   const thisMonth = useMemo(
@@ -62,14 +64,53 @@ export default function HomePage() {
   const loading = !loaded && transactions.length === 0;
 
   return (
-    <main className="flex-1 space-y-5 p-4 pt-4">
+    <main className="flex-1 space-y-5 p-4 pt-4 sm:space-y-6 sm:p-5">
       <MonthSummary />
 
       {enabled.has("weeklyBudget") && (
-        <WeeklyBudget />
+        <MonthlyBudget />
       )}
 
-      {enabled.has("addExpense") && <AddExpense />}
+      {enabled.has("recent") &&
+        (loading ? (
+          <Section>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="mb-2 h-11 w-full" />
+            ))}
+          </Section>
+        ) : (
+          <Section
+            title="Latest moves"
+            aside={
+              <Link href="/transactions" className="chip px-3 py-2 text-xs font-bold text-accent-text">
+                All activity
+              </Link>
+            }
+          >
+            {recent.length === 0 ? (
+              <EmptyState
+                title="Your story starts here"
+                hint="Log your first expense or import a CSV from Settings."
+                action={<Link href="/settings" className="btn-primary inline-flex items-center rounded-full px-4 py-2 text-xs">Import transactions</Link>}
+              />
+            ) : (
+              <ul className="divide-y divide-line">
+                {recent.map((t) => (
+                  <li key={t.id}>
+                    <Link href={`/transactions/${t.id}`} className="flex min-h-14 items-center gap-3 rounded-xl px-1 py-2.5 transition-colors active:bg-panel-2">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black" style={{ background: `${categoryColor(t.category)}22`, color: categoryColor(t.category) }}>{t.category.slice(0, 1).toUpperCase()}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">{t.notes || t.category}</div>
+                        <div className="text-xs text-ink-3">{formatDate(t.date)}{t.time && t.time !== "00:00" ? ` · ${formatTime(t.time)}` : ""} · {t.category}</div>
+                      </div>
+                      <div className="text-sm font-bold tabular-nums text-ink">{t.price < 0 ? moneyWithSign(t.price) : formatMoney(t.price)}</div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        ))}
 
       {enabled.has("spendingTrend") &&
         (loading ? (
@@ -78,16 +119,16 @@ export default function HomePage() {
           </Section>
         ) : (
           <Section
-            title="Spending"
+            title="Spending trend"
             aside={
               <div className="flex flex-wrap justify-end gap-1">
                 {PERIODS.map((p) => (
                   <button
                     key={p.key}
                     onClick={() => setPeriod(p.key)}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                      period === p.key
-                        ? "bg-accent text-accent-ink"
+                    className={`chip rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                      activePeriod === p.key
+                        ? "chip-active"
                         : "text-ink-3 hover:text-ink"
                     }`}
                   >
@@ -97,14 +138,17 @@ export default function HomePage() {
               </div>
             }
           >
-            <SpendingTrend period={period} />
-            {period === "month" && (
-              <p className="mt-1 text-center text-[11px] text-ink-3">
-                This month, broken into weeks
+            <SpendingTrend period={activePeriod} />
+            {activePeriod === "month" && (
+          <p className="mt-1 text-center text-[11px] text-ink-3">
+                Weekly totals, month to date
               </p>
             )}
-            {period === "day" && (
-              <p className="mt-1 text-center text-[11px] text-ink-3">Last 30 days</p>
+            {activePeriod === "day" && (
+              <p className="mt-1 text-center text-[11px] text-ink-3">Daily totals, last 7 days</p>
+            )}
+            {activePeriod === "all" && (
+              <p className="mt-1 text-center text-[11px] text-ink-3">Monthly totals, current month is partial</p>
             )}
           </Section>
         ))}
@@ -115,82 +159,11 @@ export default function HomePage() {
             <Skeleton className="h-40 w-full" />
           </Section>
         ) : (
-          <Section title="Where you spent">
-            <CategoryBars transactions={thisMonth} />
-          </Section>
-        ))}
-
-      {enabled.has("monthlyCategory") &&
-        (loading ? (
-          <Section>
-            <Skeleton className="h-40 w-full" />
-          </Section>
-        ) : (
-          <Section title="Month by category">
-            <MonthlyCategoryMatrix transactions={transactions} />
-          </Section>
-        ))}
-
-      {enabled.has("recent") &&
-        (loading ? (
-          <Section>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="mb-2 h-10 w-full" />
-            ))}
-          </Section>
-        ) : (
           <Section
-            title="Recent"
-            aside={
-              <Link
-                href="/transactions"
-                className="rounded-lg px-2 py-1 text-xs text-accent-strong"
-              >
-                See all
-              </Link>
-            }
+            title="Where this month went"
+            aside={<Link href="/categories" className="chip px-3 py-2 text-xs font-bold text-accent-text">All categories</Link>}
           >
-            {recent.length === 0 ? (
-              <EmptyState
-                title="No transactions yet"
-                hint="Add your first expense or import a CSV from Settings."
-                action={
-                  <Link
-                    href="/settings"
-                    className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-accent-ink"
-                  >
-                    Import on Settings
-                  </Link>
-                }
-              />
-            ) : (
-              <ul className="divide-y divide-line">
-                {recent.map((t) => (
-                  <li key={t.id}>
-                    <Link
-                      href={`/transactions/${t.id}`}
-                      className="flex items-center gap-3 py-2.5 active:bg-panel-2"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ background: categoryColor(t.category) }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm">{t.notes || t.category}</div>
-                        <div className="text-xs text-ink-3">
-                          {formatDate(t.date)}
-                          {t.time && t.time !== "00:00" ? ` · ${formatTime(t.time)}` : ""}{" "}
-                          · {t.category}
-                        </div>
-                      </div>
-                      <div className="text-sm font-semibold tabular-nums text-rose-500 dark:text-rose-400">
-                        {formatMoney(t.price)}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <CategoryBars transactions={thisMonth} />
           </Section>
         ))}
 

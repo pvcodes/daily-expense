@@ -4,7 +4,7 @@ import "./globals.css";
 import { ExpenseProvider } from "@/hooks/useExpenses";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import BottomNav from "@/components/BottomNav";
-import OfflineBanner from "@/components/OfflineBanner";
+import AddExpense from "@/components/AddExpense";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f6f6f7",
+  themeColor: "#171b19",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -51,21 +51,21 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
-          content="default"
+          content="black-translucent"
         />
         <meta name="mobile-web-app-capable" content="yes" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){function apply(){var dark=null,accent=null;try{dark=localStorage.getItem("theme");accent=localStorage.getItem("expense-tracker.accent");}catch(e){}var d=dark==="dark";document.documentElement.classList.toggle("dark",d);if(accent)document.documentElement.dataset.accent=accent;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#09090b":"#f6f6f7");var sb=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(sb)sb.setAttribute("content",d?"black-translucent":"default");}apply();})();`,
+          __html: `(function(){var dark=true;try{var t=localStorage.getItem("theme");if(t==="light")dark=false;}catch(e){}document.documentElement.classList.toggle("dark",dark);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#171b19":"#f5f2e9");var sb=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(sb)sb.setAttribute("content",dark?"black-translucent":"default");})();`,
           }}
         />
       </head>
       <body className="h-full bg-canvas text-ink">
         <ExpenseProvider>
-          <div className="mx-auto flex min-h-full max-w-md flex-col pb-[calc(env(safe-area-inset-bottom)+4.5rem)]">
-            <OfflineBanner />
+          <div className="mx-auto flex min-h-full w-full max-w-xl flex-col pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:px-3">
             {children}
           </div>
+          <AddExpense />
           <BottomNav />
         </ExpenseProvider>
         <ServiceWorkerRegistration />

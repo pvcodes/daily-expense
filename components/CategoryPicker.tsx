@@ -65,7 +65,7 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
               onClick={() => onChange(c)}
               className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 active
-                  ? "bg-accent text-accent-ink"
+                  ? "chip-active"
                   : "border border-line-strong bg-panel-2 text-ink-3"
               }`}
             >
@@ -112,7 +112,7 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
                 cancel();
               }
             }}
-            className={`min-w-0 flex-1 rounded-xl border bg-panel-2 px-3 py-2 text-sm placeholder:text-ink-3 focus:outline-none ${
+            className={`field min-w-0 flex-1 py-2 text-sm ${
               error ? "border-red-400" : "border-line focus:border-accent"
             }`}
           />
@@ -120,7 +120,7 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
             type="button"
             onClick={submit}
             disabled={!draft.trim()}
-            className="shrink-0 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-accent-ink disabled:opacity-50"
+            className="btn-primary shrink-0 px-3 py-2 text-sm"
           >
             Add
           </button>

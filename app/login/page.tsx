@@ -42,12 +42,14 @@ export default function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center bg-canvas px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-line bg-panel p-6"
+        className="card w-full max-w-sm space-y-5 p-6 sm:p-7"
       >
         <div>
-          <h1 className="text-xl font-bold text-ink">Expense Tracker</h1>
-          <p className="mt-1 text-sm text-ink-3">
-            Private to you. Enter your passcode to continue.
+          <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-2xl text-accent-ink">₹</span>
+          <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Money, on main</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">Welcome back.</h1>
+          <p className="mt-2 text-sm text-ink-3">
+            Your spending, synced and ready. Enter your passcode to continue.
           </p>
         </div>
         <input
@@ -61,7 +63,7 @@ export default function LoginPage() {
             setError(false);
           }}
           placeholder="Passcode"
-          className={`w-full rounded-xl border bg-panel-2 px-4 py-3 text-base placeholder:text-ink-3 focus:outline-none ${
+          className={`field w-full placeholder:text-ink-3 ${
             error ? "border-red-400" : "border-line focus:border-accent"
           }`}
         />
@@ -73,7 +75,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy || !password}
-          className="w-full rounded-xl bg-accent py-3 text-base font-semibold text-accent-ink active:scale-[0.98] disabled:opacity-50"
+          className="btn-primary w-full py-3 text-base"
         >
           {busy ? "Checking…" : "Unlock"}
         </button>

@@ -22,10 +22,10 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-line bg-panel ${className}`}>
+    <section className={`card ${className}`}>
       {title && (
         <div className="flex items-center justify-between px-4 pt-4">
-          <h2 className="text-sm font-semibold text-ink">{title}</h2>
+          <h2 className="text-sm font-bold text-ink">{title}</h2>
           {aside}
         </div>
       )}
@@ -48,7 +48,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center gap-2 py-10 text-center">
       {icon && (
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-2 text-ink-3">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-2 text-2xl text-ink-3">
           {icon}
         </span>
       )}

@@ -4,14 +4,12 @@ export interface MonthPoint {
   month: string;
   label: string;
   spend: number;
-  income: number;
 }
 
 export interface PeriodPoint {
   key: string;
   label: string;
   spend: number;
-  income: number;
 }
 
 export interface CategorySlice {
@@ -45,38 +43,29 @@ export function monthLabel(key: string): string {
 }
 
 export function aggregateByMonth(txs: Transaction[]): MonthPoint[] {
-  const map = new Map<string, { spend: number; income: number }>();
+  const map = new Map<string, number>();
   for (const t of txs) {
+    if (t.price >= 0) continue;
     const key = monthKey(t.date);
-    const entry = map.get(key) || { spend: 0, income: 0 };
-    if (t.price >= 0) entry.income += t.price;
-    else entry.spend += -t.price;
-    map.set(key, entry);
+    map.set(key, (map.get(key) || 0) - t.price);
   }
   return [...map.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([month, v]) => ({
       month,
       label: monthLabel(month),
-      spend: v.spend,
-      income: v.income,
+      spend: v,
     }));
 }
 
 export function aggregateByCategory(
-  txs: Transaction[],
-  includeIncome = false
+  txs: Transaction[]
 ): CategorySlice[] {
   const map = new Map<string, { value: number; count: number }>();
   for (const t of txs) {
     if (t.price < 0) {
       const entry = map.get(t.category) || { value: 0, count: 0 };
       entry.value += -t.price;
-      entry.count += 1;
-      map.set(t.category, entry);
-    } else if (includeIncome && t.price > 0) {
-      const entry = map.get(t.category) || { value: 0, count: 0 };
-      entry.value += t.price;
       entry.count += 1;
       map.set(t.category, entry);
     }
@@ -154,11 +143,9 @@ export function currentMonthWeeks(
     const from = startDate < first ? firstIso : isoFromDate(startDate);
     const to = endDate > last ? lastIso : isoFromDate(endDate);
     let spend = 0;
-    let income = 0;
     for (const t of txs) {
       if (t.date >= from && t.date <= to) {
-        if (t.price >= 0) income += t.price;
-        else spend += -t.price;
+        if (t.price < 0) spend += -t.price;
       }
     }
     const fromM = Number(from.slice(5, 7));
@@ -172,7 +159,6 @@ export function currentMonthWeeks(
       key: isoFromDate(startDate),
       label: `${MONTHS[m]} ${y} · ${range}`,
       spend,
-      income,
     });
     startDate.setUTCDate(startDate.getUTCDate() + 7);
   }
@@ -196,22 +182,20 @@ export function aggregateByPeriod(
   period: PeriodKey,
   weekStart: WeekStart = DEFAULT_WEEK_START
 ): PeriodPoint[] {
-  const map = new Map<string, { spend: number; income: number }>();
+  const map = new Map<string, number>();
   for (const t of txs) {
+    if (t.price >= 0) continue;
     let key = monthKey(t.date);
     if (period === "week") key = weekKey(t.date, weekStart);
     else if (period === "day") key = t.date;
     else if (period === "quarter") key = quarterKey(t.date);
     else if (period === "year") key = t.date.slice(0, 4);
     else if (period === "all") key = "all";
-    const entry = map.get(key) || { spend: 0, income: 0 };
-    if (t.price >= 0) entry.income += t.price;
-    else entry.spend += -t.price;
-    map.set(key, entry);
+    map.set(key, (map.get(key) || 0) - t.price);
   }
   return [...map.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, v]) => ({ key, label: periodLabel(key, period), spend: v.spend, income: v.income }));
+    .map(([key, spend]) => ({ key, label: periodLabel(key, period), spend }));
 }
 
 function periodLabel(key: string, period: PeriodKey): string {
@@ -244,20 +228,14 @@ export function currentMonthLabel(): string {
   return `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-export function monthSummary(txs: Transaction[]): {
-  spend: number;
-  income: number;
-  net: number;
-} {
+export function monthSummary(txs: Transaction[]): { spend: number } {
   const key = currentMonthKey();
   let spend = 0;
-  let income = 0;
   for (const t of txs) {
     if (!t.date.startsWith(key)) continue;
-    if (t.price >= 0) income += t.price;
-    else spend += -t.price;
+    if (t.price < 0) spend += -t.price;
   }
-  return { spend, income, net: income - spend };
+  return { spend };
 }
 
 export function monthDelta(txs: Transaction[]): {
@@ -271,12 +249,17 @@ export function monthDelta(txs: Transaction[]): {
   const prevKey = `${prevDate.getFullYear()}-${String(
     prevDate.getMonth() + 1
   ).padStart(2, "0")}`;
+  const previousCutoff = Math.min(
+    now.getDate(),
+    new Date(prevDate.getFullYear(), prevDate.getMonth() + 1, 0).getDate()
+  );
   let current = 0;
   let previous = 0;
   for (const t of txs) {
     if (t.price >= 0) continue;
-    if (t.date.startsWith(key)) current += -t.price;
-    else if (t.date.startsWith(prevKey)) previous += -t.price;
+    const day = Number(t.date.slice(8, 10));
+    if (t.date.startsWith(key) && day <= now.getDate()) current += -t.price;
+    else if (t.date.startsWith(prevKey) && day <= previousCutoff) previous += -t.price;
   }
   const pct =
     previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
@@ -346,18 +329,35 @@ export function spendTrend(
   weekStart: WeekStart = DEFAULT_WEEK_START
 ): PeriodPoint[] {
   if (period === "all") {
-    return aggregateByMonth(txs)
-      .slice(-14)
-      .map((m) => ({
-        key: m.month,
-        label: m.label,
-        spend: m.spend,
-        income: m.income,
-      }));
+    const monthly = new Map(aggregateByMonth(txs).map((m) => [m.month, m]));
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const point = monthly.get(key);
+      return {
+        key,
+        label: MONTHS[date.getMonth()],
+        spend: point?.spend ?? 0,
+      };
+    });
   }
   if (period === "month") return currentMonthWeeks(txs, weekStart);
   if (period === "day") {
-    return slicePeriodData(aggregateByPeriod(txs, "day", weekStart), "day", 30);
+    const byDay = new Map(
+      aggregateByPeriod(txs, "day", weekStart).map((point) => [point.key, point])
+    );
+    const now = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const point = byDay.get(key);
+      return {
+        key,
+        label: `${MONTHS[date.getMonth()]} ${date.getDate()}`,
+        spend: point?.spend ?? 0,
+      };
+    });
   }
   const count = period === "year" ? 6 : 8;
   return slicePeriodData(aggregateByPeriod(txs, period, weekStart), period, count);

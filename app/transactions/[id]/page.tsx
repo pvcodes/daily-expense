@@ -42,14 +42,14 @@ export default function TransactionEditPage() {
   if (!tx) {
     return (
       <main className="flex-1 p-4 pt-6">
-        <h1 className="text-2xl font-bold">Edit transaction</h1>
+        <h1 className="text-2xl font-extrabold">✏️ Edit</h1>
         <EmptyState
           title="Transaction not found"
           hint="It may have been deleted on another device."
           action={
             <Link
               href="/transactions"
-              className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-accent-ink"
+              className="btn-primary rounded-full! px-4 py-2 text-xs"
             >
               Back to transactions
             </Link>
@@ -86,7 +86,7 @@ export default function TransactionEditPage() {
             <path d="m15 18-6-6 6-6" strokeWidth={2} />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold">Edit transaction</h1>
+        <h1 className="text-2xl font-extrabold">✏️ Edit</h1>
       </header>
 
       <Section>
@@ -98,7 +98,7 @@ export default function TransactionEditPage() {
             placeholder="Amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-line bg-panel-2 px-3 py-3 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+            className="field w-full placeholder:text-ink-3"
             autoFocus
           />
 
@@ -110,14 +110,14 @@ export default function TransactionEditPage() {
               aria-label="Date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-3 text-base focus:border-accent focus:outline-none"
+              className="field min-w-0"
             />
             <input
               type="time"
               aria-label="Time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-3 text-base focus:border-accent focus:outline-none"
+              className="field min-w-0"
             />
           </div>
 
@@ -127,13 +127,13 @@ export default function TransactionEditPage() {
             aria-label="Notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-xl border border-line bg-panel-2 px-3 py-3 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+            className="field w-full placeholder:text-ink-3"
           />
 
           <button
             type="submit"
             disabled={saving}
-            className="w-full rounded-xl bg-accent py-3 text-base font-semibold text-accent-ink active:scale-[0.98] disabled:opacity-50"
+            className="btn-primary w-full py-3 text-base"
           >
             Save changes
           </button>

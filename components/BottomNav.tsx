@@ -14,8 +14,8 @@ export default function BottomNav() {
   const pathname = usePathname();
   if (pathname === "/login") return null;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80 pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-md items-stretch justify-around">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-xl items-stretch justify-around px-2">
         {items.map((item) => {
           const active =
             pathname === item.href ||
@@ -24,14 +24,17 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 pt-2.5 text-[11px] font-medium transition-colors ${
-                active
-                  ? "text-accent"
-                  : "text-ink-3"
+              className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-bold tracking-wide transition-colors ${
+                active ? "text-accent-text" : "text-ink-3"
               }`}
             >
-              <item.icon className="h-6 w-6" strokeWidth={active ? 2.2 : 1.8} />
+              <item.icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.7} />
               {item.label}
+              <span
+                className={`mt-0.5 h-1 w-1 rounded-full transition-colors ${
+                  active ? "bg-accent" : "bg-transparent"
+                }`}
+              />
             </Link>
           );
         })}
@@ -43,16 +46,8 @@ export default function BottomNav() {
 function HomeIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path
-        d="M3 10.5 12 3l9 7.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 9.5V21h14V9.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 9.5V21h14V9.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

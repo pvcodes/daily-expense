@@ -4,22 +4,22 @@ import { useEffect, useState } from "react";
 import { useUserPrefs } from "@/hooks/useUserPrefs";
 
 const SWATCHES = [
-  { id: "emerald", color: "#10b981" },
-  { id: "blue", color: "#2563eb" },
-  { id: "violet", color: "#8b5cf6" },
-  { id: "rose", color: "#f43f5e" },
-  { id: "amber", color: "#f59e0b" },
+  { id: "violet", color: "linear-gradient(135deg,#7c3aed,#ec4899)" },
+  { id: "pink", color: "linear-gradient(135deg,#db2777,#f97316)" },
+  { id: "lime", color: "linear-gradient(135deg,#65a30d,#10b981)" },
+  { id: "blue", color: "linear-gradient(135deg,#2563eb,#06b6d4)" },
+  { id: "amber", color: "linear-gradient(135deg,#d97706,#f43f5e)" },
 ];
 
 const KEY = "expense-tracker.accent";
 
 export default function AccentPicker() {
-  const [accent, setAccent] = useState<string>("emerald");
+  const [accent, setAccent] = useState<string>("violet");
   const { set: setServer } = useUserPrefs();
 
   useEffect(() => {
     const id = setTimeout(() => {
-      const cur = document.documentElement.dataset.accent || "emerald";
+      const cur = document.documentElement.dataset.accent || "violet";
       setAccent(cur);
     }, 0);
     return () => clearTimeout(id);

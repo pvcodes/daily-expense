@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ImportExport from "@/components/ImportExport";
-import CloudSync from "@/components/CloudSync";
 import ThemeToggle from "@/components/ThemeToggle";
-import AccentPicker from "@/components/AccentPicker";
-import { useWeeklyBudget } from "@/hooks/useWeeklyBudget";
+import { useMonthlyBudget } from "@/hooks/useMonthlyBudget";
 import { useWeekStart } from "@/hooks/useWeekStart";
 import { useHomeWidgets, HOME_WIDGETS } from "@/hooks/useHomeWidgets";
 import { useSessionUser } from "@/hooks/useSessionUser";
-import { clearLocalDataAndCache, purgeUserScopedState } from "@/lib/storage";
+import { purgeUserScopedState } from "@/lib/storage";
+import { formatMoney } from "@/lib/format";
 
 export default function SettingsPage() {
-  const { budget, setBudget } = useWeeklyBudget();
+  const { budget, setBudget } = useMonthlyBudget();
   const { weekStart, setWeekStart } = useWeekStart();
   const { enabled, toggle } = useHomeWidgets();
   const { user: sessionUser, loading } = useSessionUser();
@@ -21,7 +20,15 @@ export default function SettingsPage() {
   const [budgetDraft, setBudgetDraft] = useState(
     budget > 0 ? String(budget) : ""
   );
-  const [clearing, setClearing] = useState(false);
+  const budgetDirty = useRef(false);
+
+  // The saved budget loads async from localStorage on mount; reflect it in
+  // the input unless the user has already started typing.
+  useEffect(() => {
+    if (!budgetDirty.current) {
+      setBudgetDraft(budget > 0 ? String(budget) : "");
+    }
+  }, [budget]);
 
   async function logout() {
     // Wipe this device's cached pages/API responses first so the next person
@@ -38,33 +45,25 @@ export default function SettingsPage() {
 
   function saveBudget() {
     const v = parseFloat(budgetDraft);
+    budgetDirty.current = false;
     if (Number.isFinite(v) && v > 0) setBudget(Math.round(v));
     else setBudget(0);
   }
 
-  async function clearLocalData() {
-    if (
-      !confirm(
-        "This clears local preferences and cached app files on THIS device. Your transactions live on the server and are unaffected. Continue?"
-      )
-    ) {
-      return;
-    }
-    setClearing(true);
-    try {
-      await clearLocalDataAndCache();
-    } finally {
-      window.location.reload();
-    }
+  function removeBudget() {
+    budgetDirty.current = false;
+    setBudgetDraft("");
+    setBudget(0);
   }
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6">
+    <main className="flex-1 space-y-4 p-4 pt-5 sm:p-5">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Settings</h1>
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Make it yours</p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight text-ink">Settings</h1>
       </header>
 
-      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+      <div className="card space-y-3 p-4">
         <div>
           <h2 className="text-sm font-semibold text-ink">Account</h2>
           <p className="mt-0.5 truncate text-xs text-ink-3">
@@ -77,7 +76,7 @@ export default function SettingsPage() {
         </div>
         <button
           onClick={logout}
-          className="w-full rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-medium active:scale-[0.98]"
+          className="w-full rounded-xl border border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
         >
           Log out
         </button>
@@ -87,35 +86,51 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
-        <h2 className="text-sm font-semibold text-ink">Weekly budget</h2>
+      <div className="card space-y-3 p-4">
+        <h2 className="text-sm font-semibold text-ink">Monthly budget</h2>
         <p className="text-xs text-ink-3">
-          Compare this week&apos;s spending against a target.
+          {budget > 0
+            ? `Current target: ${formatMoney(budget)} per month.`
+            : "Compare this month's spending against a target."}
         </p>
         <div className="flex gap-2">
           <input
             type="number"
             inputMode="numeric"
-            placeholder="Amount per week"
-            aria-label="Weekly budget amount"
+            placeholder="Amount per month"
+            aria-label="Monthly budget amount"
             value={budgetDraft}
-            onChange={(e) => setBudgetDraft(e.target.value)}
-            className="min-w-0 flex-1 rounded-xl border border-line bg-panel-2 px-4 py-3 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+            onChange={(e) => {
+              budgetDirty.current = true;
+              setBudgetDraft(e.target.value);
+            }}
+            className="field min-w-0 flex-1 placeholder:text-ink-3"
           />
           <button
             onClick={saveBudget}
-            className="shrink-0 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-accent-ink active:scale-[0.98]"
+            className="btn-primary shrink-0 px-5 py-3 text-sm"
           >
             {budget > 0 ? "Update" : "Set"}
           </button>
+          {budget > 0 && (
+            <button
+              onClick={removeBudget}
+              className="shrink-0 rounded-xl border border-line-strong bg-panel-2 px-4 py-3 text-sm font-medium text-ink-3 active:scale-[0.98]"
+            >
+              Remove
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="card space-y-3 p-4">
         <div>
           <h2 className="text-sm font-semibold text-ink">Week starts on</h2>
           <p className="mt-0.5 text-xs text-ink-3">
-            Used for the weekly budget and weekly chart buckets.
+            Used for the weekly chart buckets.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-panel-2 p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border-[1.5px] border-line-strong bg-panel-2 p-1">
           {(["monday", "sunday"] as const).map((d) => (
             <button
               key={d}
@@ -132,7 +147,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+      <div className="card space-y-3 p-4">
         <div>
           <h2 className="text-sm font-semibold text-ink">Home screen widgets</h2>
           <p className="mt-0.5 text-xs text-ink-3">
@@ -169,44 +184,15 @@ export default function SettingsPage() {
         </ul>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+      <div className="card space-y-3 p-4">
         <div>
           <h2 className="text-sm font-semibold text-ink">Appearance</h2>
           <p className="mt-0.5 text-xs text-ink-3">
-            Light is the default. Dark saves on this device.
+            Dark is the default. Light is for the bright days.
           </p>
         </div>
         <ThemeToggle />
-        <div>
-          <h2 className="text-sm font-semibold text-ink">Color scheme</h2>
-          <p className="mt-0.5 text-xs text-ink-3">
-            Pick an accent for buttons and charts.
-          </p>
-        </div>
-        <AccentPicker />
       </div>
-
-      <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
-        <div>
-          <h2 className="text-sm font-semibold text-ink">
-            Reset this device
-          </h2>
-          <p className="mt-0.5 text-xs text-ink-3">
-            Clears local preferences and cached app files so the latest update
-            loads on this device. Your transactions live on the server and are
-            unaffected.
-          </p>
-        </div>
-        <button
-          disabled={clearing}
-          onClick={clearLocalData}
-          className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 active:scale-[0.98] disabled:opacity-50 dark:border-red-800 dark:text-red-300"
-        >
-          {clearing ? "Clearing…" : "Clear local data & cache"}
-        </button>
-      </div>
-
-      <CloudSync />
 
       <ImportExport />
     </main>

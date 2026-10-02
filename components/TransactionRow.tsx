@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Transaction } from "@/lib/types";
 import { categoryColor } from "@/lib/types";
-import { formatMoney, formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatMoney, formatTime, moneyWithSign } from "@/lib/format";
 
 export default function TransactionRow({
   tx,
@@ -39,12 +39,8 @@ export default function TransactionRow({
         </div>
         <div className="truncate text-xs text-ink-3">{sub}</div>
       </div>
-      <div
-        className={`shrink-0 tabular-nums text-rose-500 dark:text-rose-400 ${
-          compact ? "text-sm font-medium" : "text-sm font-semibold"
-        }`}
-      >
-        {formatMoney(tx.price)}
+      <div className={`shrink-0 tabular-nums text-ink ${compact ? "text-sm font-medium" : "text-sm font-semibold"}`}>
+        {tx.price < 0 ? moneyWithSign(tx.price) : formatMoney(tx.price)}
       </div>
     </Link>
   );

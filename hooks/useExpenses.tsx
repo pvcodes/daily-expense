@@ -52,6 +52,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [offline, setOffline] = useState(false);
   const busyRef = useRef(false);
+  const txsRef = useRef<Transaction[]>([]);
+  useEffect(() => {
+    txsRef.current = transactions;
+  }, [transactions]);
   const router = useRouter();
 
   const redirectToLogin = useCallback(() => {
@@ -136,20 +140,21 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
   const addMany = useCallback(
     (txs: Transaction[]) => {
-      let added: Transaction[] = [];
-      setTransactions((prev) => {
-        const existing = new Set(prev.map(contentKey));
-        added = txs
-          .map((t) => ({
-            ...t,
-            id: t.id || newId(),
-            currency: t.currency || "INR",
-            notes: t.notes || "",
-          }))
-          .filter((t) => !existing.has(contentKey(t)));
-        if (added.length === 0) return prev;
-        return [...[...added].reverse(), ...prev].sort(sortDesc);
-      });
+      // Compute the de-duped set synchronously from the current ledger so the
+      // optimistic update and the return value agree.
+      const prev = txsRef.current;
+      const existing = new Set(prev.map(contentKey));
+      const added = txs
+        .map((t) => ({
+          ...t,
+          id: t.id || newId(),
+          currency: t.currency || "INR",
+          notes: t.notes || "",
+        }))
+        .filter((t) => !existing.has(contentKey(t)));
+      if (added.length > 0) {
+        setTransactions([...[...added].reverse(), ...prev].sort(sortDesc));
+      }
       setError(null);
       if (added.length > 0) {
         pushRemote(added, []).catch((e) => {
@@ -158,46 +163,41 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             return;
           }
           const ids = new Set(added.map((t) => t.id));
-          setTransactions((prev) => prev.filter((t) => !ids.has(t.id)));
+          setTransactions((p) => p.filter((t) => !ids.has(t.id)));
           setError("Couldn't import — reverting. Check your connection.");
         });
       }
-      return txs.length;
+      return added.length;
     },
     [redirectToLogin]
   );
 
   const updateTransaction = useCallback(
     (id: string, patch: NewTransaction) => {
-      let old: Transaction | undefined;
-      let updated: Transaction | undefined;
-      setTransactions((prev) => {
-        old = prev.find((t) => t.id === id);
-        if (!old) return prev;
-        updated = {
-          id,
-          date: patch.date,
-          time: patch.time || "00:00",
-          category: patch.category,
-          price: patch.price,
-          currency: old.currency || "INR",
-          notes: patch.notes || "",
-        };
-        return prev
-          .filter((t) => t.id !== id)
-          .concat([updated])
-          .sort(sortDesc);
-      });
+      const prev = txsRef.current;
+      const old = prev.find((t) => t.id === id);
+      if (!old) return;
+      const updated: Transaction = {
+        id,
+        date: patch.date,
+        time: patch.time || "00:00",
+        category: patch.category,
+        price: patch.price,
+        currency: old.currency || "INR",
+        notes: patch.notes || "",
+      };
+      setTransactions(
+        prev.filter((t) => t.id !== id).concat([updated]).sort(sortDesc)
+      );
       setError(null);
-      if (!updated || !old) return;
-      const upd = updated;
-      pushRemote([upd], []).catch((e) => {
+      pushRemote([updated], []).catch((e) => {
         if ((e as { status?: number }).status === 401) {
           redirectToLogin();
           return;
         }
-        setTransactions((prev) => prev.filter((t) => t.id !== upd.id));
-        setTransactions((prev) => [...prev, old as Transaction].sort(sortDesc));
+        setTransactions((p) =>
+          p.filter((t) => t.id !== updated.id).concat([old]).sort(sortDesc)
+        );
         setError("Couldn't save edit — reverting. Check your connection.");
       });
     },
@@ -205,11 +205,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteTransaction = useCallback((id: string) => {
-    let removed: Transaction | undefined;
-    setTransactions((prev) => {
-      removed = prev.find((t) => t.id === id);
-      return prev.filter((t) => t.id !== id);
-    });
+    const removed = txsRef.current.find((t) => t.id === id);
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
     setError(null);
     pushRemote([], [id]).catch((e) => {
       if ((e as { status?: number }).status === 401) {
@@ -217,14 +214,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (!removed) return;
-      const restored: Transaction = removed;
-      setTransactions((prev) => [...prev, restored].sort(sortDesc));
+      setTransactions((prev) => [...prev, removed].sort(sortDesc));
       setError("Couldn't delete — reverting. Check your connection.");
     });
   }, [redirectToLogin]);
 
   const clearAll = useCallback(() => {
-    const prev = transactions;
+    const prev = txsRef.current;
     setTransactions([]);
     setError(null);
     clearRemote().catch((e) => {
@@ -235,7 +231,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       setTransactions(prev);
       setError("Couldn't clear — reverting. Check your connection.");
     });
-  }, [transactions, redirectToLogin]);
+  }, [redirectToLogin]);
 
   const value = useMemo(
     () => ({

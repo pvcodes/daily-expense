@@ -6,7 +6,7 @@ import { useSyncedPref } from "@/hooks/useSyncedPref";
 import { useCategories } from "@/hooks/useCategories";
 import { useRecurring } from "@/hooks/useRecurring";
 import { mergeCategories, DEFAULT_CATEGORIES, type RecurrenceFrequency } from "@/lib/types";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, localTodayISO } from "@/lib/format";
 import { EmptyState, Skeleton } from "@/components/ui";
 import TransactionRow from "@/components/TransactionRow";
 import CategoryPicker from "@/components/CategoryPicker";
@@ -34,7 +34,7 @@ function TransactionsContent() {
   const [rrCategory, setRrCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [rrNotes, setRrNotes] = useState("");
   const [rrFrequency, setRrFrequency] = useState<RecurrenceFrequency>("monthly");
-  const [rrStart, setRrStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [rrStart, setRrStart] = useState(() => localTodayISO());
   const [rrError, setRrError] = useState<string | null>(null);
   const [confirmRuleId, setConfirmRuleId] = useState<string | null>(null);
   const [cat, setCat] = useSyncedPref<string>(
@@ -130,10 +130,11 @@ function TransactionsContent() {
   const loading = !loaded && transactions.length === 0;
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6">
+    <main className="flex-1 space-y-4 p-4 pt-5 sm:p-5">
       <header>
-        <h1 className="text-2xl font-bold">Transactions</h1>
-        <p className="text-sm text-ink-3">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Your ledger</p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight">Transactions</h1>
+        <p className="mt-1 text-sm text-ink-3">
           {loading
             ? "Loading…"
             : filtered.length === 0
@@ -144,7 +145,7 @@ function TransactionsContent() {
         </p>
       </header>
 
-      <div className="rounded-2xl border border-line bg-panel">
+      <div className="overflow-hidden rounded-2xl border border-line bg-panel shadow-[var(--card-shadow)]">
         <button
           onClick={() => setShowRecurring((v) => !v)}
           className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-ink"
@@ -212,7 +213,7 @@ function TransactionsContent() {
                 placeholder="Amount"
                 value={rrPrice}
                 onChange={(e) => setRrPrice(e.target.value)}
-                className="w-full rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+                className="field w-full placeholder:text-ink-3"
               />
               <CategoryPicker value={rrCategory} onChange={setRrCategory} />
               <div className="grid grid-cols-2 gap-2">
@@ -220,7 +221,7 @@ function TransactionsContent() {
                   aria-label="Frequency"
                   value={rrFrequency}
                   onChange={(e) => setRrFrequency(e.target.value as RecurrenceFrequency)}
-                  className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base focus:border-accent focus:outline-none"
+                  className="field min-w-0"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -231,7 +232,7 @@ function TransactionsContent() {
                   aria-label="Start date"
                   value={rrStart}
                   onChange={(e) => setRrStart(e.target.value)}
-                  className="min-w-0 rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base focus:border-accent focus:outline-none"
+                  className="field min-w-0"
                 />
               </div>
               <input
@@ -240,13 +241,13 @@ function TransactionsContent() {
                 aria-label="Notes"
                 value={rrNotes}
                 onChange={(e) => setRrNotes(e.target.value)}
-                className="w-full rounded-xl border border-line bg-panel-2 px-3 py-2.5 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+                className="field w-full placeholder:text-ink-3"
               />
               {rrError && <p className="text-xs text-red-500">{rrError}</p>}
               <button
                 type="submit"
                 disabled={!rrPrice}
-                className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-accent-ink active:scale-[0.98] disabled:opacity-50"
+                className="btn-primary w-full py-2.5 text-sm"
               >
                 Add recurring rule
               </button>
@@ -262,7 +263,7 @@ function TransactionsContent() {
             onClick={() => onCat(c)}
             className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
               cat === c
-                ? "bg-accent text-accent-ink"
+                ? "chip-active"
                 : "bg-panel-2 text-ink-3"
             }`}
           >
@@ -276,7 +277,7 @@ function TransactionsContent() {
         placeholder="Search notes…"
         value={search}
         onChange={(e) => onSearch(e.target.value)}
-        className="w-full rounded-xl border border-line bg-panel-2 px-4 py-3 text-base placeholder:text-ink-3 focus:border-accent focus:outline-none"
+        className="field w-full px-4 py-3 placeholder:text-ink-3"
       />
 
       {loading ? (
@@ -302,7 +303,7 @@ function TransactionsContent() {
               return (
                 <li
                   key={t.id}
-                  className="overflow-hidden rounded-2xl border border-line bg-panel transition-colors data-[confirm=true]:border-red-300 dark:data-[confirm=true]:border-red-800"
+                  className="overflow-hidden card transition-colors data-[confirm=true]:border-red-300 dark:data-[confirm=true]:border-red-800"
                   data-confirm={confirming}
                 >
                   {confirming ? (
@@ -376,7 +377,7 @@ function TransactionsContent() {
                         }
                         className={`h-9 w-9 shrink-0 rounded-lg text-sm font-medium transition-colors active:scale-[0.98] ${
                           n === pageItems.currentPage
-                            ? "bg-accent text-accent-ink"
+                            ? "chip-active"
                             : "bg-panel-2 text-ink-3"
                         }`}
                       >

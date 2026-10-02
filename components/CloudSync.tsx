@@ -53,7 +53,7 @@ export default function CloudSync() {
         });
 
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+    <div className="card space-y-3 p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-ink">Cloud</h3>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-text">
@@ -87,7 +87,7 @@ export default function CloudSync() {
       <button
         disabled={busy}
         onClick={() => run(async () => { await refresh(); }, "Refreshed from server.")}
-        className="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-accent-ink active:scale-[0.98] disabled:opacity-50"
+        className="btn-primary w-full py-3 text-sm"
       >
         Refresh now
       </button>

@@ -16,12 +16,17 @@ export function CategoryBars({ transactions }: { transactions: Transaction[] }) 
     [data]
   );
   if (data.length === 0) return <Empty label="No expenses yet" />;
-  const max = data[0].value;
+  const top = data.slice(0, 5);
+  const otherValue = data.slice(5).reduce((sum, d) => sum + d.value, 0);
+  const rows = otherValue > 0
+    ? [...top, { name: "Other", value: otherValue, count: data.slice(5).reduce((sum, d) => sum + d.count, 0) }]
+    : top;
+  const max = rows[0].value;
 
   return (
-    <div className="space-y-2.5">
-      {data.slice(0, 8).map((d) => {
-        const color = categoryColor(d.name);
+    <div className="space-y-3">
+      {rows.map((d) => {
+        const color = d.name === "Other" ? "var(--ink-3)" : categoryColor(d.name);
         const pct = Math.round((d.value / total) * 100);
         return (
           <div key={d.name}>
@@ -31,12 +36,12 @@ export function CategoryBars({ transactions }: { transactions: Transaction[] }) 
                 style={{ background: color }}
               />
               <span className="min-w-0 flex-1 truncate text-ink">{d.name}</span>
-              <span className="shrink-0 text-xs text-ink-3">{pct}%</span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">
+              <span className="shrink-0 min-w-9 text-right text-xs tabular-nums text-ink-3">{pct}%</span>
+              <span className="shrink-0 text-sm font-bold tabular-nums">
                 {formatMoney(d.value)}
               </span>
             </div>
-            <div className="ml-[1.125rem] h-1.5 overflow-hidden rounded-full bg-panel-2">
+            <div className="ml-[1.125rem] h-2 overflow-hidden rounded-full bg-panel-2">
               <div
                 className="h-full rounded-full"
                 style={{
