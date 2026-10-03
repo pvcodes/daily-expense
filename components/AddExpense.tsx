@@ -37,7 +37,10 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center">
+    <div
+      className="fixed inset-0 flex items-end justify-center"
+      style={{ zIndex: 70 }}
+    >
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
@@ -47,7 +50,8 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Add expense"
-        className="relative w-full max-w-xl animate-sheet-up rounded-t-[2rem] border border-line bg-panel p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[var(--card-shadow)]"
+        style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+        className="relative w-full max-w-xl animate-sheet-up rounded-t-[2rem] border border-line bg-panel p-5 shadow-[var(--card-shadow)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
         <form onSubmit={submit} className="space-y-3">
