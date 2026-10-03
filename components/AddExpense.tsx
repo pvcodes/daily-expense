@@ -121,27 +121,35 @@ export default function AddExpense() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Add expense"
-        style={{
-          bottom: "calc(6rem + env(safe-area-inset-bottom))",
-          zIndex: 60,
-        }}
-        className="btn-fab fixed right-4 flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90 sm:right-[max(1rem,calc((100vw-36rem)/2))]"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-6 w-6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.4}
-          strokeLinecap="round"
+      {!open && (
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center"
+          style={{ zIndex: 100 }}
         >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        <span>Add</span>
-      </button>
+          <div
+            className="flex w-full max-w-xl justify-end px-4 sm:px-3"
+            style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}
+          >
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Add expense"
+              className="btn-fab pointer-events-auto flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>Add</span>
+            </button>
+          </div>
+        </div>
+      )}
       {open && <AddExpenseSheet onClose={() => setOpen(false)} />}
     </>
   );
