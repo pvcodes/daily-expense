@@ -39,7 +39,7 @@ describe("monthKey / monthLabel", () => {
 });
 
 describe("aggregateByMonth", () => {
-  it("groups by month, separates spend/income, sorts ascending", () => {
+  it("groups spending by month and sorts ascending", () => {
     const txs = [
       tx("2026-08-10", -100),
       tx("2026-09-01", -50),
@@ -47,8 +47,8 @@ describe("aggregateByMonth", () => {
     ];
     const points = aggregateByMonth(txs);
     expect(points.map((p) => p.month)).toEqual(["2026-08", "2026-09"]);
-    expect(points[0]).toMatchObject({ spend: 100, income: 0 });
-    expect(points[1]).toMatchObject({ spend: 50, income: 200 });
+    expect(points[0]).toMatchObject({ spend: 100 });
+    expect(points[1]).toMatchObject({ spend: 50 });
   });
 });
 
@@ -64,13 +64,6 @@ describe("aggregateByCategory", () => {
     expect(slices).toEqual([
       { name: "Food", value: 175, count: 2 },
       { name: "Rent", value: 50, count: 1 },
-    ]);
-  });
-  it("includes income when includeIncome is true", () => {
-    const txs = [tx("2026-09-01", -100, "Food"), tx("2026-09-02", 500, "Salary")];
-    expect(aggregateByCategory(txs, true)).toEqual([
-      { name: "Salary", value: 500, count: 1 },
-      { name: "Food", value: 100, count: 1 },
     ]);
   });
 });
@@ -157,7 +150,7 @@ describe("now-dependent helpers (frozen to 2026-09-01)", () => {
 
   it("monthSummary filters to the current month", () => {
     const txs = [tx("2026-09-01", -100), tx("2026-09-30", -50), tx("2026-08-31", -999), tx("2026-09-02", 300)];
-    expect(monthSummary(txs)).toEqual({ spend: 150, income: 300, net: 150 });
+    expect(monthSummary(txs)).toEqual({ spend: 150 });
   });
 
   it("monthDelta compares to last month and nulls when no previous", () => {

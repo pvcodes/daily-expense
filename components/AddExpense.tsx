@@ -124,7 +124,11 @@ export default function AddExpense() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Add expense"
-        className="btn-fab fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom)+0.5rem)] right-4 z-30 flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90 sm:right-[max(1rem,calc((100vw-36rem)/2))]"
+        style={{
+          bottom: "calc(6rem + env(safe-area-inset-bottom))",
+          zIndex: 60,
+        }}
+        className="btn-fab fixed right-4 flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90 sm:right-[max(1rem,calc((100vw-36rem)/2))]"
       >
         <svg
           viewBox="0 0 24 24"
