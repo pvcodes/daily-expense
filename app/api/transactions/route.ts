@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   initSchemaOnce,
   listTransactions,
@@ -41,17 +41,14 @@ export async function GET(request: Request) {
   if (!userId) return unauthorized();
   try {
     await ensureSchema();
-    await Promise.all([
-      seedCategories(userId),
-      applyRecurring(userId).catch(() => {
-        // non-fatal: recurring catch-up must never break listing
-      }),
-    ]);
-    const [txs, count] = await Promise.all([
-      listTransactions(userId),
-      countTransactions(userId),
-    ]);
-    return NextResponse.json({ transactions: txs, count });
+    await applyRecurring(userId).catch(() => {
+      // non-fatal: recurring catch-up must never break listing
+    });
+    const txs = await listTransactions(userId);
+    // Category adoption does not affect the ledger response. Run this
+    // one-time migration after sending transactions so it cannot delay first paint.
+    after(() => seedCategories(userId));
+    return NextResponse.json({ transactions: txs, count: txs.length });
   } catch (e) {
     return NextResponse.json(
       { error: (e as Error).message },

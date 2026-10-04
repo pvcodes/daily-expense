@@ -72,6 +72,11 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       if (r.offline) {
         setOffline(true);
         setTransactions(r.transactions);
+      } else if (r.stale) {
+        // Render the cached ledger immediately; the service worker will send
+        // the fresh ledger once its background request completes.
+        setOffline(false);
+        setTransactions(r.transactions);
       } else {
         setOffline(false);
         setTransactions(r.transactions);
@@ -114,6 +119,26 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", onOnline);
     };
   }, [pull]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const message = event.data as
+        | { type?: string; transactions?: Transaction[] }
+        | undefined;
+      if (message?.type === "TRANSACTIONS_UPDATED" && Array.isArray(message.transactions)) {
+        setTransactions(message.transactions);
+        setOffline(false);
+        setError(null);
+        setLastSyncAt(Date.now());
+        setLoaded(true);
+      } else if (message?.type === "TRANSACTIONS_SYNC_FAILED") {
+        setOffline(true);
+        setLoaded(true);
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
+  }, []);
 
   const addTransaction = useCallback((tx: NewTransaction) => {
     const full: Transaction = {

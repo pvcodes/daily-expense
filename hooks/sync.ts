@@ -4,11 +4,13 @@ export interface RemoteTransactions {
   transactions: Transaction[];
   count: number;
   offline: boolean;
+  stale: boolean;
 }
 
 export async function fetchRemote(): Promise<RemoteTransactions> {
   const res = await fetch("/api/transactions");
   const offline = res.headers.get("x-offline") === "1";
+  const stale = res.headers.get("x-stale") === "1";
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(
@@ -21,7 +23,7 @@ export async function fetchRemote(): Promise<RemoteTransactions> {
     transactions: Transaction[];
     count: number;
   };
-  return { ...body, offline };
+  return { ...body, offline, stale };
 }
 
 export async function pushRemote(

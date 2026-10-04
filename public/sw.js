@@ -1,4 +1,4 @@
-const CACHE = "expense-tracker-v5";
+const CACHE = "expense-tracker-v6";
 // App shell only. Do NOT precache "/" — it 307-redirects to /login when
 // unauthenticated and cache.addAll rejects non-200, failing install.
 const PRECACHE = [
@@ -31,48 +31,84 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for the transactions API: fresh data when online (cached for
-// next time), last-known data tagged X-Offline when the fetch fails. Non-GET
-// requests always pass through untouched. This is the app's offline read path.
-async function networkFirst(req) {
-  try {
-    const res = await fetch(req);
-    if (res.status === 200) {
-      const cache = await caches.open(CACHE);
-      cache.put(req, res.clone());
-    }
-    return res;
-  } catch {
-    const cached = await caches.match(req);
-    if (cached) {
-      const headers = new Headers(cached.headers);
-      headers.set("X-Offline", "1");
-      return new Response(cached.body, {
+// Serve the last ledger immediately, then revalidate it. This keeps the UI
+// responsive on repeat visits while still syncing fresh data in the background.
+async function ledgerStaleWhileRevalidate(req, clientId) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(req);
+  const update = fetch(req)
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`Ledger request failed (${res.status})`);
+      const copy = res.clone();
+      await cache.put(req, copy.clone());
+      if (cached && clientId) {
+        const client = await self.clients.get(clientId);
+        if (client) {
+          const body = await copy.json();
+          client.postMessage({ type: "TRANSACTIONS_UPDATED", transactions: body.transactions });
+        }
+      }
+      return res;
+    })
+    .catch(async () => {
+      if (cached && clientId) {
+        const client = await self.clients.get(clientId);
+        if (client) client.postMessage({ type: "TRANSACTIONS_SYNC_FAILED" });
+      }
+      return null;
+    });
+
+  if (cached) {
+    // Keep background work alive after returning the cached response.
+    const headers = new Headers(cached.headers);
+    headers.set("X-Stale", "1");
+    return {
+      response: new Response(cached.body, {
         status: cached.status,
         statusText: cached.statusText,
         headers,
-      });
-    }
-    return new Response(JSON.stringify({ error: "Offline" }), {
+      }),
+      update,
+    };
+  }
+
+  const fresh = await update;
+  return {
+    response: fresh || new Response(JSON.stringify({ error: "Offline" }), {
       status: 503,
       headers: { "Content-Type": "application/json", "X-Offline": "1" },
-    });
-  }
+    }),
+    update: Promise.resolve(),
+  };
+}
+
+async function invalidateLedgerCache() {
+  const cache = await caches.open(CACHE);
+  await cache.delete(new Request(new URL(TXN_PATH, self.location.origin)));
 }
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
-
   const url = new URL(req.url);
   // Only handle same-origin requests.
   if (url.origin !== self.location.origin) return;
 
-  // Transactions API: network-first with cache fallback.
+  // Keep cached ledger data consistent after writes.
   if (url.pathname === TXN_PATH) {
-    event.respondWith(networkFirst(req));
+    if (req.method === "GET") {
+      const result = ledgerStaleWhileRevalidate(req, event.clientId);
+      event.waitUntil(result.then((r) => r.update));
+      event.respondWith(result.then((r) => r.response));
+    } else if (req.method === "POST" || req.method === "DELETE") {
+      event.respondWith(fetch(req).then(async (res) => {
+        if (res.ok) await invalidateLedgerCache();
+        return res;
+      }));
+    }
     return;
   }
+
+  if (req.method !== "GET") return;
 
   // Don't cache other API routes.
   if (url.pathname.startsWith("/api")) return;
