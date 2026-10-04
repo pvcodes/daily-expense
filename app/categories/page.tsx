@@ -94,7 +94,7 @@ export default function CategoriesPage() {
               <button
                 onClick={submitNew}
                 disabled={!draft.trim()}
-                className="btn-primary shrink-0 px-3 py-2 text-sm"
+                className="btn-primary min-h-11 shrink-0 px-3 py-2 text-sm"
               >
                 Add
               </button>
@@ -109,7 +109,7 @@ export default function CategoriesPage() {
         <button
           onClick={() => setManaging((v) => !v)}
           aria-expanded={managing}
-          className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold ${
+          className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-xs font-semibold ${
             managing
               ? "chip-active"
               : "border border-line-strong bg-panel-2 text-ink-3"
@@ -134,7 +134,7 @@ export default function CategoriesPage() {
         <button
           onClick={() => setManaging((v) => !v)}
           aria-expanded={managing}
-          className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+          className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
             managing
               ? "chip-active"
               : "border border-line-strong bg-panel-2 text-ink-3"
@@ -179,7 +179,7 @@ export default function CategoriesPage() {
             <button
               onClick={submitNew}
               disabled={!draft.trim()}
-              className="btn-primary shrink-0 px-3 py-2 text-sm"
+              className="btn-primary min-h-11 shrink-0 px-3 py-2 text-sm"
             >
               Add
             </button>
@@ -208,7 +208,7 @@ export default function CategoriesPage() {
                         onClick={() => removeCategory(c)}
                         aria-label={`Remove ${c}`}
                         title="Remove from your categories (past transactions keep it)"
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-ink-3 active:bg-red-500/15 active:text-red-500"
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-ink-3 active:bg-red-500/15 active:text-red-500"
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -245,7 +245,7 @@ export default function CategoriesPage() {
                 onClick={() => setOpenCat(open ? null : c.name)}
                 aria-expanded={open}
                 aria-controls={`cat-${c.name.replace(/\s+/g, "-")}`}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left"
               >
                 <span
                   className="h-9 w-9 shrink-0 rounded-xl"

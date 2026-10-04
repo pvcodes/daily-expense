@@ -63,7 +63,7 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
               type="button"
               aria-pressed={active}
               onClick={() => onChange(c)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
                 active
                   ? "chip-active"
                   : "border border-line-strong bg-panel-2 text-ink-3"
@@ -83,7 +83,7 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
           <button
             type="button"
             onClick={startAdding}
-            className="shrink-0 rounded-full border border-dashed border-line-strong px-3 py-1.5 text-xs font-semibold text-ink-3 active:scale-[0.98]"
+            className="min-h-11 shrink-0 rounded-full border border-dashed border-line-strong px-3 py-2 text-xs font-semibold text-ink-3 active:scale-[0.98]"
           >
             + New
           </button>
@@ -120,14 +120,14 @@ export default function CategoryPicker({ value, onChange, readOnly }: Props) {
             type="button"
             onClick={submit}
             disabled={!draft.trim()}
-            className="btn-primary shrink-0 px-3 py-2 text-sm"
+            className="btn-primary min-h-11 shrink-0 px-3 py-2 text-sm"
           >
             Add
           </button>
           <button
             type="button"
             onClick={cancel}
-            className="shrink-0 rounded-xl border border-line-strong px-3 py-2 text-sm font-medium text-ink-3"
+            className="min-h-11 shrink-0 rounded-xl border border-line-strong px-3 py-2 text-sm font-medium text-ink-3"
           >
             Cancel
           </button>

@@ -62,7 +62,13 @@ export default function RootLayout({
       </head>
       <body className="h-full bg-canvas text-ink">
         <ExpenseProvider>
-          <div className="mx-auto flex min-h-full w-full max-w-xl flex-col pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:px-3">
+          <div
+            className="app-shell mx-auto flex min-h-dvh w-full max-w-xl flex-col sm:px-3"
+            style={{
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 5.5rem)",
+            }}
+          >
             {children}
           </div>
           <AddExpense />

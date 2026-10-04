@@ -39,7 +39,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-canvas px-4">
+    <main className="flex flex-1 items-center justify-center bg-canvas px-4">
       <form
         onSubmit={submit}
         className="card w-full max-w-sm space-y-5 p-6 sm:p-7"
@@ -54,7 +54,6 @@ export default function LoginPage() {
         </div>
         <input
           type="password"
-          autoFocus
           autoComplete="current-password"
           aria-label="Passcode"
           value={password}

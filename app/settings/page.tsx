@@ -93,7 +93,7 @@ export default function SettingsPage() {
             ? `Current target: ${formatMoney(budget)} per month.`
             : "Compare this month's spending against a target."}
         </p>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <input
             type="number"
             inputMode="numeric"
@@ -104,18 +104,18 @@ export default function SettingsPage() {
               budgetDirty.current = true;
               setBudgetDraft(e.target.value);
             }}
-            className="field min-w-0 flex-1 placeholder:text-ink-3"
+            className="field col-span-2 min-w-0 placeholder:text-ink-3"
           />
           <button
             onClick={saveBudget}
-            className="btn-primary shrink-0 px-5 py-3 text-sm"
+            className={`btn-primary min-h-11 px-4 py-3 text-sm ${budget > 0 ? "" : "col-span-2"}`}
           >
             {budget > 0 ? "Update" : "Set"}
           </button>
           {budget > 0 && (
             <button
               onClick={removeBudget}
-              className="shrink-0 rounded-xl border border-line-strong bg-panel-2 px-4 py-3 text-sm font-medium text-ink-3 active:scale-[0.98]"
+              className="min-h-11 rounded-xl border border-line-strong bg-panel-2 px-4 py-3 text-sm font-medium text-ink-3 active:scale-[0.98]"
             >
               Remove
             </button>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
             <button
               key={d}
               onClick={() => setWeekStart(d)}
-              className={`rounded-lg py-2 text-sm capitalize transition-colors ${
+              className={`min-h-11 rounded-lg py-2 text-sm capitalize transition-colors ${
                 weekStart === d
                   ? "bg-panel text-ink shadow-sm"
                   : "text-ink-3 active:text-ink"
@@ -168,12 +168,12 @@ export default function SettingsPage() {
                   aria-checked={on}
                   aria-label={`Toggle ${w.label}`}
                   onClick={() => toggle(w.key)}
-                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                  className={`relative flex h-11 w-12 shrink-0 items-center rounded-full transition-colors ${
                     on ? "bg-accent" : "bg-line-strong"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                    className={`absolute top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-white shadow transition-all ${
                       on ? "left-[22px]" : "left-0.5"
                     }`}
                   />

@@ -111,6 +111,27 @@ textarea {
   font-size: 16px;
 }
 
+button,
+a {
+  touch-action: manipulation;
+}
+
+.visual-viewport {
+  top: var(--visual-viewport-top, 0px);
+  height: var(--visual-viewport-height, 100dvh);
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-shell {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .animate-sheet-up {
+    animation: none;
+  }
+}
+
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -199,6 +220,17 @@ main > header h1 { letter-spacing: -0.045em; }
 .field:focus {
   border-color: var(--accent);
   outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @keyframes pop {

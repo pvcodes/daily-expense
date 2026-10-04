@@ -82,7 +82,7 @@ export default function HomePage() {
           <Section
             title="Latest moves"
             aside={
-              <Link href="/transactions" className="chip px-3 py-2 text-xs font-bold text-accent-text">
+              <Link href="/transactions" className="chip min-h-11 px-3 py-2 text-xs font-bold text-accent-text">
                 All activity
               </Link>
             }
@@ -126,7 +126,7 @@ export default function HomePage() {
                   <button
                     key={p.key}
                     onClick={() => setPeriod(p.key)}
-                    className={`chip rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                    className={`chip min-h-11 rounded-full px-3 py-2 text-[11px] font-bold transition-colors ${
                       activePeriod === p.key
                         ? "chip-active"
                         : "text-ink-3 hover:text-ink"
@@ -161,7 +161,7 @@ export default function HomePage() {
         ) : (
           <Section
             title="Where this month went"
-            aside={<Link href="/categories" className="chip px-3 py-2 text-xs font-bold text-accent-text">All categories</Link>}
+            aside={<Link href="/categories" className="chip min-h-11 px-3 py-2 text-xs font-bold text-accent-text">All categories</Link>}
           >
             <CategoryBars transactions={thisMonth} />
           </Section>

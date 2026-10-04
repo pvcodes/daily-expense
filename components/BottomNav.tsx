@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 
 const items = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -12,9 +13,18 @@ const items = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const keyboardVisible = useKeyboardVisible();
   if (pathname === "/login") return null;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+    <nav
+      aria-label="Primary navigation"
+      className={`fixed inset-x-0 bottom-0 z-50 border-t border-line bg-canvas/95 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-[opacity,transform] duration-150 ${keyboardVisible ? "pointer-events-none translate-y-full opacity-0" : "translate-y-0 opacity-100"}`}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       <div className="mx-auto flex max-w-xl items-stretch justify-around px-2">
         {items.map((item) => {
           const active =
@@ -24,7 +34,8 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-bold tracking-wide transition-colors ${
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-bold tracking-wide transition-colors ${
                 active ? "text-accent-text" : "text-ink-3"
               }`}
             >

@@ -7,30 +7,15 @@ import { currentMonthLabel, monthDelta, monthSummary } from "@/lib/analytics";
 import { formatMoney } from "@/lib/format";
 
 function SyncPill() {
-  const { offline, lastSyncAt } = useExpenses();
+  const { offline } = useExpenses();
   const online = useNetworkStatus();
   const offlineShowing = offline || !online;
 
-  if (offlineShowing) {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-        Offline · cached
-      </span>
-    );
-  }
-  if (lastSyncAt == null) {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ink-3" />
-        Loading…
-      </span>
-    );
-  }
+  if (!offlineShowing) return null;
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
-      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-      Updated {new Date(lastSyncAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    <span className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px] font-semibold text-ink-3">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+      Offline · cached
     </span>
   );
 }
@@ -71,7 +56,7 @@ export default function MonthSummary() {
           </h1>
         </div>
         <div className="pt-1 text-right">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-3">{currentMonthLabel()}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-3">{currentMonthLabel()}</p>
           <SyncPill />
         </div>
       </div>

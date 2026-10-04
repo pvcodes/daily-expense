@@ -176,7 +176,7 @@ function TransactionsContent() {
                       <>
                         <button
                           onClick={() => setConfirmRuleId(null)}
-                          className="rounded-lg border border-line-strong bg-panel-2 px-2.5 py-1 text-xs font-medium text-ink"
+                          className="min-h-11 rounded-lg border border-line-strong bg-panel-2 px-3 py-2 text-xs font-medium text-ink"
                         >
                           Cancel
                         </button>
@@ -185,7 +185,7 @@ function TransactionsContent() {
                             void removeRule(r.id);
                             setConfirmRuleId(null);
                           }}
-                          className="rounded-lg bg-red-500 px-2.5 py-1 text-xs font-semibold text-white"
+                          className="min-h-11 rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white"
                         >
                           Delete
                         </button>
@@ -194,7 +194,7 @@ function TransactionsContent() {
                       <button
                         onClick={() => setConfirmRuleId(r.id)}
                         aria-label={`Delete ${r.notes || r.category}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-3 active:bg-red-500/10 active:text-red-500"
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-ink-3 active:bg-red-500/10 active:text-red-500"
                       >
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor">
                           <path d="M6 6l12 12M6 18 18 6" strokeLinecap="round" />
@@ -261,7 +261,7 @@ function TransactionsContent() {
           <button
             key={c}
             onClick={() => onCat(c)}
-            className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+            className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
               cat === c
                 ? "chip-active"
                 : "bg-panel-2 text-ink-3"
@@ -313,7 +313,7 @@ function TransactionsContent() {
                       </p>
                       <button
                         onClick={() => setConfirmId(null)}
-                        className="rounded-lg border border-line-strong bg-panel-2 px-3 py-1.5 text-xs font-medium text-ink active:scale-[0.98]"
+                        className="min-h-11 rounded-lg border border-line-strong bg-panel-2 px-3 py-2 text-xs font-medium text-ink active:scale-[0.98]"
                       >
                         Cancel
                       </button>
@@ -322,7 +322,7 @@ function TransactionsContent() {
                           deleteTransaction(t.id);
                           setConfirmId(null);
                         }}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white active:scale-[0.98]"
+                        className="min-h-11 rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white active:scale-[0.98]"
                       >
                         Delete
                       </button>
@@ -333,7 +333,7 @@ function TransactionsContent() {
                       <button
                         onClick={() => setConfirmId(t.id)}
                         aria-label={`Delete ${t.notes || t.category}`}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-3 active:bg-red-500/10 active:text-red-500"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-3 active:bg-red-500/10 active:text-red-500"
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -357,7 +357,7 @@ function TransactionsContent() {
                 onClick={() => setPage(Math.max(1, pageItems.currentPage - 1))}
                 disabled={pageItems.currentPage === 1}
                 aria-label="Previous page"
-                className="rounded-xl border border-line-strong bg-panel-2 px-3 py-2 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-40"
+                className="min-h-11 rounded-xl border border-line-strong bg-panel-2 px-3 py-2 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-40"
               >
                 Prev
               </button>
@@ -375,7 +375,7 @@ function TransactionsContent() {
                         aria-current={
                           n === pageItems.currentPage ? "page" : undefined
                         }
-                        className={`h-9 w-9 shrink-0 rounded-lg text-sm font-medium transition-colors active:scale-[0.98] ${
+                        className={`h-11 w-11 shrink-0 rounded-lg text-sm font-medium transition-colors active:scale-[0.98] ${
                           n === pageItems.currentPage
                             ? "chip-active"
                             : "bg-panel-2 text-ink-3"
@@ -394,7 +394,7 @@ function TransactionsContent() {
                 }
                 disabled={pageItems.currentPage === pageItems.totalPages}
                 aria-label="Next page"
-                className="rounded-xl border border-line-strong bg-panel-2 px-3 py-2 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-40"
+                className="min-h-11 rounded-xl border border-line-strong bg-panel-2 px-3 py-2 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-40"
               >
                 Next
               </button>

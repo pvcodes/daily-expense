@@ -80,7 +80,7 @@ export default function TransactionEditPage() {
         <button
           onClick={() => router.back()}
           aria-label="Back"
-          className="-m-2 rounded-lg p-2 text-ink-3 active:text-ink"
+          className="-m-1 flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-ink-3 active:text-ink"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" strokeWidth={2} />
@@ -99,7 +99,6 @@ export default function TransactionEditPage() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="field w-full placeholder:text-ink-3"
-            autoFocus
           />
 
           <CategoryPicker value={category} onChange={setCategory} />
@@ -148,14 +147,14 @@ export default function TransactionEditPage() {
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={saving}
-                className="flex-1 rounded-xl border border-line-strong bg-panel-2 py-2.5 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-50"
+                className="min-h-11 flex-1 rounded-xl border border-line-strong bg-panel-2 py-2.5 text-sm font-medium text-ink active:scale-[0.98] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={remove}
                 disabled={saving}
-                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white active:scale-[0.98] disabled:opacity-50"
+                className="min-h-11 flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white active:scale-[0.98] disabled:opacity-50"
               >
                 Delete
               </button>
@@ -165,7 +164,7 @@ export default function TransactionEditPage() {
           <button
             onClick={() => setConfirmDelete(true)}
             disabled={saving}
-            className="w-full rounded-xl border border-red-200 py-2.5 text-sm font-medium text-red-600 active:scale-[0.98] disabled:opacity-50 dark:border-red-800 dark:text-red-300"
+            className="min-h-11 w-full rounded-xl border border-red-200 py-2.5 text-sm font-medium text-red-600 active:scale-[0.98] disabled:opacity-50 dark:border-red-800 dark:text-red-300"
           >
             Delete this transaction
           </button>

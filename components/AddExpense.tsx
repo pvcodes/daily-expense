@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useHomeWidgets } from "@/hooks/useHomeWidgets";
+import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 import { DEFAULT_CATEGORIES } from "@/lib/types";
 import CategoryPicker from "@/components/CategoryPicker";
 import { localTodayISO, localNowTime } from "@/lib/format";
 
-function AddExpenseSheet({ onClose }: { onClose: () => void }) {
+function AddExpenseSheet({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
   const { addTransaction } = useExpenses();
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
@@ -16,13 +21,61 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
   const [date, setDate] = useState(() => localTodayISO());
   const [time, setTime] = useState(() => localNowTime());
   const [saving, setSaving] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const dialog = sheetRef.current;
+      const focusable = dialog?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      const container = viewportRef.current;
+      if (!container) return;
+      container.style.setProperty(
+        "--visual-viewport-height",
+        `${viewport?.height ?? window.innerHeight}px`
+      );
+      container.style.setProperty(
+        "--visual-viewport-top",
+        `${viewport?.offsetTop ?? 0}px`
+      );
+    };
+    syncViewport();
+    viewport?.addEventListener("resize", syncViewport);
+    viewport?.addEventListener("scroll", syncViewport);
+    window.addEventListener("resize", syncViewport);
+    sheetRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      viewport?.removeEventListener("resize", syncViewport);
+      viewport?.removeEventListener("scroll", syncViewport);
+      window.removeEventListener("resize", syncViewport);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [onClose]);
 
   async function submit(e: React.FormEvent) {
@@ -37,8 +90,12 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 flex items-end justify-center"
-      style={{ zIndex: 70 }}
+      ref={viewportRef}
+      className="visual-viewport fixed inset-x-0 z-[70] flex items-end justify-center"
+      style={{
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
     >
       <div
         className="absolute inset-0 bg-black/40"
@@ -48,23 +105,27 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Add expense"
+        aria-labelledby="add-expense-title"
+        tabIndex={-1}
+        ref={sheetRef}
         style={{
-          maxHeight: "calc(100dvh - env(safe-area-inset-top) - 1rem)",
+          maxHeight: "calc(var(--visual-viewport-height, 100dvh) - env(safe-area-inset-top) - 0.5rem)",
           overflowY: "auto",
           paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
         }}
-        className="relative w-full max-w-xl animate-sheet-up rounded-t-[2rem] border border-line bg-panel p-5 shadow-[var(--card-shadow)]"
+        className="relative w-full max-w-xl animate-sheet-up rounded-t-[2rem] border border-line bg-panel p-5 shadow-[var(--card-shadow)] outline-none"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
         <form onSubmit={submit} className="space-y-3">
           <div className="flex items-center justify-between">
-            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Quick drop</p><h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">Add expense</h2></div>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-accent-text">Quick drop</p><h2 id="add-expense-title" className="mt-1 text-xl font-extrabold tracking-tight text-ink">Add expense</h2></div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="-m-2 rounded-lg p-2 text-xs text-ink-3"
+              className="-m-1 flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-xs text-ink-3"
             >
               Close
             </button>
@@ -109,8 +170,14 @@ function AddExpenseSheet({ onClose }: { onClose: () => void }) {
 
 export default function AddExpense() {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const { enabled } = useHomeWidgets();
+  const keyboardVisible = useKeyboardVisible();
+  const closeSheet = useCallback(() => {
+    setOpen(false);
+    window.requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+  }, []);
 
   if (pathname === "/login" || !enabled.has("addExpense")) return null;
 
@@ -118,17 +185,24 @@ export default function AddExpense() {
     <>
       {!open && (
         <div
-          className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center"
+            className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center transition-[opacity,transform] duration-150 ${keyboardVisible ? "translate-y-full opacity-0" : "translate-y-0 opacity-100"}`}
           style={{ zIndex: 100 }}
         >
           <div
-            className="flex w-full max-w-xl justify-end px-4 sm:px-3"
-            style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}
+            className="flex w-full max-w-xl justify-end"
+            style={{
+              paddingBottom: "calc(6rem + env(safe-area-inset-bottom))",
+              paddingLeft: "calc(1rem + env(safe-area-inset-left))",
+              paddingRight: "calc(1rem + env(safe-area-inset-right))",
+            }}
           >
             <button
+              ref={triggerRef}
               onClick={() => setOpen(true)}
               aria-label="Add expense"
-              className="btn-fab pointer-events-auto flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90"
+              aria-hidden={keyboardVisible}
+              tabIndex={keyboardVisible ? -1 : 0}
+            className="btn-fab pointer-events-auto flex h-14 items-center justify-center gap-2 px-4 text-sm font-extrabold active:scale-90"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -145,7 +219,7 @@ export default function AddExpense() {
           </div>
         </div>
       )}
-      {open && <AddExpenseSheet onClose={() => setOpen(false)} />}
+      {open && <AddExpenseSheet onClose={closeSheet} />}
     </>
   );
 }

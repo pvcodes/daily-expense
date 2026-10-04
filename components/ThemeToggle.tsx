@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     }
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta)
-      meta.setAttribute("content", t === "dark" ? "#0a0d14" : "#f6f7f9");
+      meta.setAttribute("content", t === "dark" ? "#171b19" : "#f5f2e9");
     const sb = document.querySelector(
       'meta[name="apple-mobile-web-app-status-bar-style"]'
     );
@@ -41,7 +41,8 @@ export default function ThemeToggle() {
         <button
           key={t}
           onClick={() => apply(t)}
-          className={`rounded-lg py-2 text-sm font-medium capitalize transition-colors ${
+          aria-pressed={theme === t}
+          className={`min-h-11 rounded-lg py-2 text-sm font-medium capitalize transition-colors ${
             theme === t
               ? "bg-panel text-ink shadow-sm"
               : "text-ink-3 active:text-ink"

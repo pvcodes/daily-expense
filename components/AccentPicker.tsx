@@ -43,7 +43,8 @@ export default function AccentPicker() {
           key={s.id}
           onClick={() => apply(s.id)}
           aria-label={`${s.id} accent`}
-          className={`h-9 w-9 rounded-full transition-transform active:scale-95 ${
+          aria-pressed={accent === s.id}
+          className={`h-11 w-11 rounded-full transition-transform active:scale-95 ${
             accent === s.id
               ? "ring-2 ring-ink ring-offset-2 ring-offset-panel"
               : "ring-1 ring-line-strong"
