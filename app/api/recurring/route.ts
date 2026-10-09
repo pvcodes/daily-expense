@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         !Number.isFinite(r.price) ||
         typeof r.notes !== "string" ||
         r.notes.length > 2000 ||
-        (r.frequency !== "daily" && r.frequency !== "weekly" && r.frequency !== "monthly") ||
+        (r.frequency !== "monthly" && r.frequency !== "yearly") ||
         typeof r.startDate !== "string" ||
         !DATE_RE.test(r.startDate)
       ) {
@@ -76,7 +76,9 @@ export async function POST(request: Request) {
         frequency: r.frequency,
         startDate: r.startDate,
         time: typeof r.time === "string" && r.time ? r.time : "00:00",
-        lastGenerated: null,
+        lastGenerated: typeof r.lastGenerated === "string" ? r.lastGenerated : null,
+        includeInAnalysis: r.includeInAnalysis === true,
+        paused: r.paused === true,
       });
     }
     // Materialize any already-due occurrences right away.

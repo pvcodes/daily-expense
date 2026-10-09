@@ -45,6 +45,7 @@ export function monthLabel(key: string): string {
 export function aggregateByMonth(txs: Transaction[]): MonthPoint[] {
   const map = new Map<string, number>();
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (t.price >= 0) continue;
     const key = monthKey(t.date);
     map.set(key, (map.get(key) || 0) - t.price);
@@ -63,6 +64,7 @@ export function aggregateByCategory(
 ): CategorySlice[] {
   const map = new Map<string, { value: number; count: number }>();
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (t.price < 0) {
       const entry = map.get(t.category) || { value: 0, count: 0 };
       entry.value += -t.price;
@@ -144,6 +146,7 @@ export function currentMonthWeeks(
     const to = endDate > last ? lastIso : isoFromDate(endDate);
     let spend = 0;
     for (const t of txs) {
+      if (t.includeInAnalysis === false) continue;
       if (t.date >= from && t.date <= to) {
         if (t.price < 0) spend += -t.price;
       }
@@ -184,6 +187,7 @@ export function aggregateByPeriod(
 ): PeriodPoint[] {
   const map = new Map<string, number>();
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (t.price >= 0) continue;
     let key = monthKey(t.date);
     if (period === "week") key = weekKey(t.date, weekStart);
@@ -232,6 +236,7 @@ export function monthSummary(txs: Transaction[]): { spend: number } {
   const key = currentMonthKey();
   let spend = 0;
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (!t.date.startsWith(key)) continue;
     if (t.price < 0) spend += -t.price;
   }
@@ -242,6 +247,7 @@ export function monthDelta(txs: Transaction[]): {
   pct: number | null;
   current: number;
   previous: number;
+  difference: number;
 } {
   const now = new Date();
   const key = currentMonthKey();
@@ -256,6 +262,7 @@ export function monthDelta(txs: Transaction[]): {
   let current = 0;
   let previous = 0;
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (t.price >= 0) continue;
     const day = Number(t.date.slice(8, 10));
     if (t.date.startsWith(key) && day <= now.getDate()) current += -t.price;
@@ -263,7 +270,63 @@ export function monthDelta(txs: Transaction[]): {
   }
   const pct =
     previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
-  return { pct, current, previous };
+  return { pct, current, previous, difference: current - previous };
+}
+
+export interface SpendingPace {
+  current: number;
+  projected: number | null;
+  recentAverage: number | null;
+  historyMonths: number;
+  monthDays: number;
+  elapsedDays: number;
+}
+
+/** Current-month pace compared with up to three completed, recorded months. */
+export function spendingPace(
+  txs: Transaction[],
+  now = new Date()
+): SpendingPace {
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsedDays = now.getDate();
+  let current = 0;
+  const monthTotals = new Map<string, number>();
+  const monthActivity = new Set<string>();
+  for (const tx of txs) {
+    if (tx.includeInAnalysis === false) continue;
+    const key = tx.date.slice(0, 7);
+    monthActivity.add(key);
+    if (tx.price < 0 && key === currentKey && Number(tx.date.slice(8, 10)) <= elapsedDays) {
+      current += -tx.price;
+    } else if (tx.price < 0) {
+      monthTotals.set(key, (monthTotals.get(key) ?? 0) - tx.price);
+    }
+  }
+
+  const priorKeys = Array.from({ length: 3 }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (i + 1), 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }).filter((key) => monthActivity.has(key));
+  const historyMonths = priorKeys.length;
+  const recentAverage = historyMonths >= 2
+    ? priorKeys.reduce((sum, key) => sum + (monthTotals.get(key) ?? 0), 0) / historyMonths
+    : null;
+  const projected = recentAverage === null || elapsedDays === 0
+    ? null
+    : current / elapsedDays * monthDays;
+
+  return { current, projected, recentAverage, historyMonths, monthDays, elapsedDays };
+}
+
+export function currentMonthTopCategory(txs: Transaction[]): (CategorySlice & { share: number }) | null {
+  const key = currentMonthKey();
+  const categories = aggregateByCategory(
+    txs.filter((tx) => tx.date.startsWith(key))
+  );
+  const total = categories.reduce((sum, category) => sum + category.value, 0);
+  const top = categories[0];
+  return !top || total === 0 ? null : { ...top, share: top.value / total };
 }
 
 export interface MonthCategoryRow {
@@ -295,6 +358,7 @@ export function categoryMonthMatrix(
   const cell = new Map<string, number[]>();
   const monthTotals = new Array<number>(monthCount).fill(0);
   for (const t of txs) {
+    if (t.includeInAnalysis === false) continue;
     if (t.price >= 0) continue;
     const idx = months.indexOf(t.date.slice(0, 7));
     if (idx === -1) continue;

@@ -210,6 +210,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         price: patch.price,
         currency: old.currency || "INR",
         notes: patch.notes || "",
+        includeInAnalysis: old.includeInAnalysis,
+        recurringRuleId: old.recurringRuleId,
       };
       setTransactions(
         prev.filter((t) => t.id !== id).concat([updated]).sort(sortDesc)

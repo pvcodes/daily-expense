@@ -56,6 +56,8 @@ export async function initSchema() {
   await db.query(
     `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'me'`
   );
+  await db.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS include_in_analysis BOOLEAN NOT NULL DEFAULT TRUE`);
+  await db.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_rule_id TEXT`);
   await db.query(
     `UPDATE transactions SET user_id = 'me' WHERE user_id IS NULL OR user_id = ''`
   );
@@ -82,6 +84,8 @@ export async function initSchema() {
   await db.query(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_recurring_user_id ON recurring (user_id, id)`
   );
+  await db.query(`ALTER TABLE recurring ADD COLUMN IF NOT EXISTS include_in_analysis BOOLEAN NOT NULL DEFAULT FALSE`);
+  await db.query(`ALTER TABLE recurring ADD COLUMN IF NOT EXISTS paused BOOLEAN NOT NULL DEFAULT FALSE`);
   await db.query(`CREATE TABLE IF NOT EXISTS user_prefs (
     user_id TEXT NOT NULL DEFAULT 'me',
     key TEXT NOT NULL,
@@ -154,6 +158,8 @@ interface TxRow {
   price: number;
   currency: string | null;
   notes: string | null;
+  include_in_analysis?: boolean;
+  recurring_rule_id?: string | null;
 }
 
 function toDateStr(d: unknown): string {
@@ -176,12 +182,14 @@ function rowToTx(row: TxRow): Transaction {
     price: row.price,
     currency: row.currency || "INR",
     notes: row.notes || "",
+    includeInAnalysis: row.include_in_analysis ?? true,
+    recurringRuleId: row.recurring_rule_id || undefined,
   };
 }
 
 export async function listTransactions(userId: string): Promise<Transaction[]> {
   const db = getSql();
-  const rows = (await db`SELECT id, date, time, category, price, currency, notes
+  const rows = (await db`SELECT id, date, time, category, price, currency, notes, include_in_analysis, recurring_rule_id
     FROM transactions WHERE user_id = ${userId} ORDER BY date DESC, time DESC`) as unknown as TxRow[];
   return rows.map(rowToTx);
 }
@@ -234,10 +242,10 @@ export async function upsertMany(userId: string, txs: Transaction[]) {
   const CHUNK = 100;
   for (let i = 0; i < toWrite.length; i += CHUNK) {
     const chunk = toWrite.slice(i, i + CHUNK);
-    const params: (string | number)[] = [];
+    const params: (string | number | boolean)[] = [];
     const placeholders: string[] = [];
     chunk.forEach((t, j) => {
-      const base = j * 8;
+      const base = j * 10;
       params.push(
         userId,
         t.id,
@@ -246,14 +254,16 @@ export async function upsertMany(userId: string, txs: Transaction[]) {
         t.category,
         t.price,
         t.currency,
-        t.notes
+        t.notes,
+        t.includeInAnalysis ?? true,
+        t.recurringRuleId ?? ""
       );
       placeholders.push(
-        `($${base + 1}::text, $${base + 2}::text, $${base + 3}::date, $${base + 4}::text, $${base + 5}::text, $${base + 6}::double precision, $${base + 7}::text, $${base + 8}::text, now())`
+        `($${base + 1}::text, $${base + 2}::text, $${base + 3}::date, $${base + 4}::text, $${base + 5}::text, $${base + 6}::double precision, $${base + 7}::text, $${base + 8}::text, $${base + 9}::boolean, NULLIF($${base + 10}::text, ''), now())`
       );
     });
     const query =
-      `INSERT INTO transactions (user_id, id, date, time, category, price, currency, notes, updated_at) VALUES ` +
+      `INSERT INTO transactions (user_id, id, date, time, category, price, currency, notes, include_in_analysis, recurring_rule_id, updated_at) VALUES ` +
       placeholders.join(", ") +
       ` ON CONFLICT (user_id, id) DO UPDATE SET
         date = EXCLUDED.date,
@@ -262,6 +272,8 @@ export async function upsertMany(userId: string, txs: Transaction[]) {
         price = EXCLUDED.price,
         currency = EXCLUDED.currency,
         notes = EXCLUDED.notes,
+        include_in_analysis = EXCLUDED.include_in_analysis,
+        recurring_rule_id = EXCLUDED.recurring_rule_id,
         updated_at = now()`;
     await db.query(query, params);
   }
@@ -312,6 +324,8 @@ interface RuleRow {
   start_date: unknown;
   time: string | null;
   last_generated: unknown;
+  include_in_analysis: boolean;
+  paused: boolean;
 }
 
 function rowToRule(row: RuleRow): RecurringRule {
@@ -320,18 +334,18 @@ function rowToRule(row: RuleRow): RecurringRule {
     category: row.category,
     price: row.price,
     notes: row.notes || "",
-    frequency: (row.frequency === "daily" || row.frequency === "weekly"
-      ? row.frequency
-      : "monthly") as RecurringRule["frequency"],
+    frequency: row.frequency === "yearly" ? "yearly" : "monthly",
     startDate: toDateStr(row.start_date),
     time: row.time || "00:00",
     lastGenerated: row.last_generated ? toDateStr(row.last_generated) : null,
+    includeInAnalysis: row.include_in_analysis ?? false,
+    paused: row.paused ?? false,
   };
 }
 
 export async function listRecurring(userId: string): Promise<RecurringRule[]> {
   const db = getSql();
-  const rows = (await db`SELECT id, category, price, notes, frequency, start_date, time, last_generated
+  const rows = (await db`SELECT id, category, price, notes, frequency, start_date, time, last_generated, include_in_analysis, paused
     FROM recurring WHERE user_id = ${userId} ORDER BY created_at ASC`) as unknown as RuleRow[];
   return rows.map(rowToRule);
 }
@@ -339,13 +353,13 @@ export async function listRecurring(userId: string): Promise<RecurringRule[]> {
 export async function upsertRecurring(userId: string, rule: RecurringRule) {
   const db = getSql();
   await db.query(
-    `INSERT INTO recurring (user_id, id, category, price, notes, frequency, start_date, time, last_generated)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8, $9::date)
+    `INSERT INTO recurring (user_id, id, category, price, notes, frequency, start_date, time, last_generated, include_in_analysis, paused)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8, $9::date, $10, $11)
      ON CONFLICT (user_id, id) DO UPDATE SET
        category = EXCLUDED.category, price = EXCLUDED.price, notes = EXCLUDED.notes,
        frequency = EXCLUDED.frequency, start_date = EXCLUDED.start_date, time = EXCLUDED.time,
-       last_generated = EXCLUDED.last_generated`,
-    [userId, rule.id, rule.category, rule.price, rule.notes, rule.frequency, rule.startDate, rule.time, rule.lastGenerated]
+       last_generated = EXCLUDED.last_generated, include_in_analysis = EXCLUDED.include_in_analysis, paused = EXCLUDED.paused`,
+    [userId, rule.id, rule.category, rule.price, rule.notes, rule.frequency, rule.startDate, rule.time, rule.lastGenerated, rule.includeInAnalysis, rule.paused]
   );
 }
 
@@ -371,10 +385,12 @@ export function occurrenceDates(
     guard += 1;
     const ds = fmt(cur);
     if (!floor || cur > floor) out.push(ds);
-    if (rule.frequency === "daily") {
-      cur = new Date(cur.getTime() + 86400000);
-    } else if (rule.frequency === "weekly") {
-      cur = new Date(cur.getTime() + 7 * 86400000);
+    if (rule.frequency === "yearly") {
+      const start = parse(rule.startDate);
+      const year = cur.getUTCFullYear() + 1;
+      const month = start.getUTCMonth();
+      const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+      cur = new Date(Date.UTC(year, month, Math.min(start.getUTCDate(), lastDay)));
     } else {
       // Monthly: keep the day-of-month of startDate, clamping to month length.
       const day = parse(rule.startDate).getUTCDate();
@@ -398,6 +414,7 @@ export async function applyRecurring(userId: string): Promise<number> {
   const today = new Date().toISOString().slice(0, 10);
   const toAdd: Transaction[] = [];
   for (const rule of rules) {
+    if (rule.paused) continue;
     const due = occurrenceDates(rule, rule.lastGenerated, today);
     if (due.length === 0) continue;
     for (const date of due) {
@@ -409,6 +426,8 @@ export async function applyRecurring(userId: string): Promise<number> {
         price: rule.price,
         currency: "INR",
         notes: rule.notes,
+        includeInAnalysis: rule.includeInAnalysis,
+        recurringRuleId: rule.id,
       });
     }
     await upsertRecurring(userId, { ...rule, lastGenerated: due[due.length - 1] });

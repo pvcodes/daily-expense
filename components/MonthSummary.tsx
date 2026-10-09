@@ -26,7 +26,7 @@ export default function MonthSummary() {
     () => monthSummary(transactions),
     [transactions]
   );
-  const { pct } = useMemo(() => monthDelta(transactions), [transactions]);
+  const { pct, difference, previous } = useMemo(() => monthDelta(transactions), [transactions]);
 
   const todayTotal = useMemo(() => {
     const now = new Date();
@@ -35,12 +35,12 @@ export default function MonthSummary() {
     const d = String(now.getDate()).padStart(2, "0");
     const key = `${y}-${m}-${d}`;
     return transactions.reduce(
-      (sum, t) => (t.date === key && t.price < 0 ? sum - t.price : sum),
+      (sum, t) => (t.includeInAnalysis !== false && t.date === key && t.price < 0 ? sum - t.price : sum),
       0
     );
   }, [transactions]);
 
-  const up = pct !== null && pct > 0;
+  const up = difference > 0;
 
   return (
     <header className="relative overflow-hidden rounded-[1.75rem] bg-panel px-5 pb-5 pt-5 shadow-[var(--card-shadow)]">
@@ -61,13 +61,15 @@ export default function MonthSummary() {
         </div>
       </div>
 
-      {pct !== null && (
+      {(previous > 0 || difference > 0) && (
         <span
           className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
             up ? "bg-bad/10 text-bad" : "bg-good/10 text-good"
           }`}
         >
-          {up ? "▲" : "▼"} {Math.abs(pct)}% vs same dates last month
+          {previous === 0
+            ? "No spending recorded by this date last month"
+            : <>{up ? "▲" : difference < 0 ? "▼" : "•"} {formatMoney(Math.abs(difference))}{pct !== null ? ` (${Math.abs(pct)}%)` : ""} {up ? "more" : difference < 0 ? "less" : "the same"} than by today last month</>}
         </span>
       )}
 

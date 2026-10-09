@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useSyncedPref } from "@/hooks/useSyncedPref";
 import { useCategories } from "@/hooks/useCategories";
@@ -26,9 +27,11 @@ function pageList(current: number, total: number): (number | "…")[] {
 }
 
 function TransactionsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
   const { transactions, deleteTransaction, loaded, refresh } = useExpenses();
   const { categories } = useCategories();
-  const { rules, addRule, removeRule } = useRecurring();
+  const { rules, addRule, removeRule, updateRule } = useRecurring();
   const [showRecurring, setShowRecurring] = useState(false);
   const [rrPrice, setRrPrice] = useState("");
   const [rrCategory, setRrCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
@@ -64,6 +67,8 @@ function TransactionsContent() {
         frequency: rrFrequency,
         startDate: rrStart,
         time: "00:00",
+        includeInAnalysis: false,
+        paused: false,
       });
       setRrPrice("");
       setRrNotes("");
@@ -96,6 +101,13 @@ function TransactionsContent() {
   useEffect(() => {
     if (cat !== "all" && !cats.includes(cat)) setCat("all");
   }, [cat, cats, setCat]);
+
+  useEffect(() => {
+    if (categoryParam && cats.includes(categoryParam)) {
+      setCat(categoryParam);
+      setPage(1);
+    }
+  }, [categoryParam, cats, setCat]);
 
   const filtered = useMemo(() => {
     return transactions
@@ -170,8 +182,28 @@ function TransactionsContent() {
                           · {formatMoney(Math.abs(r.price))} · {r.frequency}
                         </span>
                       </p>
-                      <p className="text-xs text-ink-3">{r.category} · from {r.startDate}</p>
+                      <p className="text-xs text-ink-3">{r.category} · from {r.startDate} · {r.includeInAnalysis ? "Included in analysis" : "Excluded from analysis"}</p>
                     </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!r.paused}
+                      aria-label={`${r.paused ? "Resume" : "Pause"} ${r.notes || r.category}`}
+                      onClick={() => void updateRule({ ...r, paused: !r.paused })}
+                      className="min-h-11 shrink-0 rounded-lg border border-line-strong bg-panel-2 px-3 text-xs font-semibold text-ink"
+                    >
+                      {r.paused ? "Resume" : "Pause"}
+                    </button>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={r.includeInAnalysis}
+                      aria-label={`${r.includeInAnalysis ? "Exclude" : "Include"} from analysis`}
+                      onClick={() => void updateRule({ ...r, includeInAnalysis: !r.includeInAnalysis })}
+                      className="min-h-11 shrink-0 rounded-lg border border-line-strong bg-panel-2 px-3 text-xs font-semibold text-ink"
+                    >
+                      {r.includeInAnalysis ? "Charts on" : "Charts off"}
+                    </button>
                     {confirmRuleId === r.id ? (
                       <>
                         <button
@@ -223,9 +255,8 @@ function TransactionsContent() {
                   onChange={(e) => setRrFrequency(e.target.value as RecurrenceFrequency)}
                   className="field min-w-0"
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
                 </select>
                 <input
                   type="date"

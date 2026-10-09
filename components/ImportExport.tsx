@@ -109,33 +109,39 @@ export default function ImportExport() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
-        <h3 className="mb-3 text-sm font-semibold text-red-600 dark:text-red-300">Danger zone</h3>
+      <div className="rounded-2xl border border-line bg-panel p-4">
+        <h3 className="mb-1 text-sm font-semibold text-ink">Clear ledger</h3>
+        <p className="mb-3 text-xs text-ink-3">Remove transactions from this account.</p>
         {!confirmingClear ? (
           <button
             onClick={() => setConfirmingClear(true)}
-            className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 active:scale-[0.98] dark:border-red-800 dark:text-red-300"
+            className="min-h-11 w-full rounded-xl border border-line-strong py-3 text-sm font-semibold text-ink active:scale-[0.98]"
           >
-            Clear all transactions
+            Delete all transactions
           </button>
         ) : (
-          <div className="flex gap-3">
+          <div className="space-y-3" role="group" aria-labelledby="clear-ledger-confirmation">
+            <p id="clear-ledger-confirmation" className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              Are you sure you want to delete all transactions? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
             <button
               onClick={() => {
                 clearAll();
                 setConfirmingClear(false);
                 setMessage({ type: "ok", text: "All transactions cleared." });
               }}
-              className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white active:scale-[0.98]"
+              className="min-h-11 flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white active:scale-[0.98]"
             >
-              Yes, clear
+              Yes, delete all
             </button>
             <button
               onClick={() => setConfirmingClear(false)}
-              className="flex-1 rounded-xl border-[1.5px] border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
+              className="min-h-11 flex-1 rounded-xl border-[1.5px] border-line-strong bg-panel-2 py-3 text-sm font-bold active:scale-[0.98]"
             >
               Cancel
             </button>
+            </div>
           </div>
         )}
       </div>

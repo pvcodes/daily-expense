@@ -6,9 +6,12 @@ export interface Transaction {
   price: number; // negative = expense, positive = income
   currency: string;
   notes: string;
+  /** Generated recurring rows can be hidden from analytics while staying in the ledger. */
+  includeInAnalysis?: boolean;
+  recurringRuleId?: string;
 }
 
-export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
+export type RecurrenceFrequency = "monthly" | "yearly";
 
 /**
  * A rule that materializes into real transactions on a schedule. Instances are
@@ -27,6 +30,8 @@ export interface RecurringRule {
   time: string; // HH:mm
   /** Last occurrence date that was materialized, yyyy-MM-dd or null. */
   lastGenerated: string | null;
+  includeInAnalysis: boolean;
+  paused: boolean;
 }
 
 export function contentKey(t: Transaction): string {

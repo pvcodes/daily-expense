@@ -58,5 +58,16 @@ export function useRecurring() {
     }
   }, []);
 
-  return { rules, loaded, refresh, addRule, removeRule };
+  const updateRule = useCallback(async (rule: RecurringRule) => {
+    const res = await fetch("/api/recurring", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rule),
+    });
+    if (!res.ok) throw new Error("Couldn't update rule");
+    const body = (await res.json()) as { rules: RecurringRule[] };
+    setRules(body.rules);
+  }, []);
+
+  return { rules, loaded, refresh, addRule, removeRule, updateRule };
 }
