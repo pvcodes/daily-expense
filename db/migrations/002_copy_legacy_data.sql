@@ -17,6 +17,7 @@ BEGIN
     FOR category_row IN
       SELECT DISTINCT COALESCE(NULLIF(BTRIM(category), ''), 'Other') AS category_name
       FROM public.transactions
+      WHERE user_id = 'me'
     LOOP
       INSERT INTO tracker_categories (name)
       VALUES (category_row.category_name)
@@ -28,13 +29,14 @@ BEGIN
     FOR category_row IN
       SELECT DISTINCT COALESCE(NULLIF(BTRIM(category), ''), 'Other') AS category_name
       FROM public.recurring
+      WHERE user_id = 'me'
     LOOP
       INSERT INTO tracker_categories (name)
       VALUES (category_row.category_name)
       ON CONFLICT (lower(name)) DO NOTHING;
     END LOOP;
 
-    FOR rule_row IN SELECT * FROM public.recurring LOOP
+    FOR rule_row IN SELECT * FROM public.recurring WHERE user_id = 'me' LOOP
       normalized_frequency := lower(COALESCE(rule_row.frequency, 'monthly'));
       start_day := EXTRACT(day FROM rule_row.start_date)::smallint;
       next_day := tracker_first_month_occurrence(rule_row.start_date, start_day);
@@ -101,6 +103,7 @@ BEGIN
     FROM public.transactions t
     JOIN tracker_categories c ON lower(c.name) = lower(COALESCE(NULLIF(BTRIM(t.category), ''), 'Other'))
     LEFT JOIN tracker_recurring_rules r ON r.id = t.recurring_rule_id
+    WHERE t.user_id = 'me'
     ON CONFLICT (id) DO NOTHING;
   END IF;
 END

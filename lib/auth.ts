@@ -106,6 +106,22 @@ export function validIsoCurrency(value: string) {
 export async function validateSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
-  const url = new URL(request.url);
-  return origin === url.origin;
+  let parsedOrigin: URL;
+  try {
+    parsedOrigin = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (parsedOrigin.protocol !== "http:" && parsedOrigin.protocol !== "https:") return false;
+
+  // In development, Next.js may construct request.url using its internal host
+  // while the browser connects through the machine's LAN address. Validate
+  // against the incoming Host header so same-origin requests work in that case.
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+    || request.headers.get("host");
+  if (!host || parsedOrigin.host.toLowerCase() !== host.toLowerCase()) return false;
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProto ? `${forwardedProto}:` : new URL(request.url).protocol;
+  return parsedOrigin.protocol === protocol;
 }

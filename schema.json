@@ -1,5 +1,97 @@
 {
-  "transactions": [
+  "tracker_categories": [
+    {
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "icon",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'circle'::text"
+    },
+    {
+      "column_name": "color",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'#496d5d'::text"
+    },
+    {
+      "column_name": "archived",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "tracker_currencies": [
+    {
+      "column_name": "code",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    }
+  ],
+  "tracker_login_attempts": [
+    {
+      "column_name": "key_hash",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "attempts",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "column_name": "window_started_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "locked_until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "tracker_migrations": [
+    {
+      "column_name": "version",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "applied_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "tracker_recurring_rules": [
     {
       "column_name": "id",
       "data_type": "text",
@@ -7,40 +99,82 @@
       "column_default": null
     },
     {
-      "column_name": "date",
-      "data_type": "date",
+      "column_name": "category_id",
+      "data_type": "uuid",
       "is_nullable": "NO",
       "column_default": null
     },
     {
-      "column_name": "time",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": "''::text"
-    },
-    {
-      "column_name": "category",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "price",
-      "data_type": "double precision",
+      "column_name": "amount",
+      "data_type": "numeric",
       "is_nullable": "NO",
       "column_default": null
     },
     {
       "column_name": "currency",
-      "data_type": "text",
+      "data_type": "character varying",
       "is_nullable": "NO",
-      "column_default": "'INR'::text"
+      "column_default": "'INR'::character varying"
     },
     {
       "column_name": "notes",
       "data_type": "text",
       "is_nullable": "NO",
       "column_default": "''::text"
+    },
+    {
+      "column_name": "cadence",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'monthly'::text"
+    },
+    {
+      "column_name": "start_date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "end_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "day_of_month",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "run_at_local_time",
+      "data_type": "time without time zone",
+      "is_nullable": "NO",
+      "column_default": "'00:00:00'::time without time zone"
+    },
+    {
+      "column_name": "next_occurrence_date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "last_generated",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "paused",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "column_name": "archived",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
     },
     {
       "column_name": "created_at",
@@ -53,12 +187,64 @@
       "data_type": "timestamp with time zone",
       "is_nullable": "NO",
       "column_default": "now()"
-    },
+    }
+  ],
+  "tracker_sessions": [
     {
-      "column_name": "user_id",
+      "column_name": "token_hash",
       "data_type": "text",
       "is_nullable": "NO",
-      "column_default": "'me'::text"
+      "column_default": null
+    },
+    {
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "tracker_transactions": [
+    {
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "occurred_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "category_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "currency",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": "'INR'::character varying"
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
     },
     {
       "column_name": "include_in_analysis",
@@ -71,59 +257,9 @@
       "data_type": "text",
       "is_nullable": "YES",
       "column_default": null
-    }
-  ],
-  "recurring": [
-    {
-      "column_name": "user_id",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": "'me'::text"
     },
     {
-      "column_name": "id",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "category",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "price",
-      "data_type": "double precision",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "notes",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": "''::text"
-    },
-    {
-      "column_name": "frequency",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "start_date",
-      "data_type": "date",
-      "is_nullable": "NO",
-      "column_default": null
-    },
-    {
-      "column_name": "time",
-      "data_type": "text",
-      "is_nullable": "NO",
-      "column_default": "'00:00'::text"
-    },
-    {
-      "column_name": "last_generated",
+      "column_name": "occurrence_date",
       "data_type": "date",
       "is_nullable": "YES",
       "column_default": null
@@ -135,16 +271,10 @@
       "column_default": "now()"
     },
     {
-      "column_name": "include_in_analysis",
-      "data_type": "boolean",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
       "is_nullable": "NO",
-      "column_default": "false"
-    },
-    {
-      "column_name": "paused",
-      "data_type": "boolean",
-      "is_nullable": "NO",
-      "column_default": "false"
+      "column_default": "now()"
     }
   ]
 }

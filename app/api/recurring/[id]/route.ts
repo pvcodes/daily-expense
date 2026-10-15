@@ -44,10 +44,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     // Materialize old-rule occurrences already due before changing future settings.
     await client.query("SELECT tracker_process_due_rule($1, NOW())", [id]);
     const r = current.rows[0];
+    const stateOnly = Object.keys(updates).length > 0 && Object.keys(updates).every((key) => key === "paused" || key === "archived");
+    if (stateOnly) {
+      await client.query("UPDATE tracker_recurring_rules SET paused=COALESCE($1,paused), archived=COALESCE($2,archived), updated_at=NOW() WHERE id=$3",
+        [updates.paused ?? null, updates.archived ?? null, id]);
+      await client.query("COMMIT");
+      return NextResponse.json({ ok: true });
+    }
     const amount = updates.amount ?? r.amount;
     const categoryId = updates.category_id ?? r.category_id;
     const currency = updates.currency ?? r.currency;
-    const notes = updates.notes ?? r.notes;
+    const notes = updates.notes ?? r.notes ?? "";
     const startDate = updates.start_date ?? r.start_date_local;
     const endDate = updates.end_date === undefined ? r.end_date_local : updates.end_date;
     const day = Number(updates.day_of_month ?? r.day_of_month);

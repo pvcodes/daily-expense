@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f8f7f3" }, { media: "(prefers-color-scheme: dark)", color: "#202a25" }]
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#faf6ef" }, { media: "(prefers-color-scheme: dark)", color: "#241d29" }]
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -15,11 +15,37 @@ export async function GET(request: Request) {
     await requireSession();
     const url = new URL(request.url);
     const excluded = url.searchParams.get("excluded") === "true";
-    const result = await query(
-      selectTransactions + "WHERE t.include_in_analysis = $1 ORDER BY t.occurred_at DESC",
-      [!excluded]
+    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number.parseInt(url.searchParams.get("pageSize") || "20", 10) || 20));
+    const search = (url.searchParams.get("search") || "").trim().slice(0, 100);
+    const offset = (page - 1) * pageSize;
+    const values: unknown[] = [!excluded];
+    let filter = "WHERE t.include_in_analysis = $1";
+    if (search) {
+      values.push(search);
+      const n = values.length;
+      filter += search.length >= 3
+        ? ` AND (t.notes ILIKE '%' || $${n} || '%' OR c.name ILIKE '%' || $${n} || '%' OR t.notes % $${n} OR c.name % $${n})`
+        : ` AND (t.notes ILIKE '%' || $${n} || '%' OR c.name ILIKE '%' || $${n} || '%')`;
+    }
+    const count = await query<{ total: string }>(
+      "SELECT COUNT(*)::text AS total FROM tracker_transactions t JOIN tracker_categories c ON c.id = t.category_id " + filter,
+      values
     );
-    return NextResponse.json({ transactions: result.rows });
+    const totals = await query<{ included: string; excluded: string }>(
+      "SELECT COUNT(*) FILTER (WHERE include_in_analysis = TRUE)::text AS included, " +
+      "COUNT(*) FILTER (WHERE include_in_analysis = FALSE)::text AS excluded FROM tracker_transactions"
+    );
+    values.push(pageSize, offset);
+    const fuzzyOrder = search.length >= 3
+      ? `CASE WHEN t.notes % $2 OR c.name % $2 THEN GREATEST(similarity(t.notes, $2), similarity(c.name, $2)) ELSE 0 END DESC, `
+      : "";
+    const result = await query(
+      selectTransactions + filter + ` ORDER BY ${fuzzyOrder}t.occurred_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
+      values
+    );
+    const total = Number(count.rows[0]?.total || 0);
+    return NextResponse.json({ transactions: result.rows, page, pageSize, total, pageCount: Math.max(1, Math.ceil(total / pageSize)), includedTotal: Number(totals.rows[0]?.included || 0), excludedTotal: Number(totals.rows[0]?.excluded || 0) });
   } catch (error) {
     const status = (error as { status?: number }).status || 500;
     return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not load transactions." }, { status });

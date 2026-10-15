@@ -1,11 +1,12 @@
 # Neon data migration
 
-The migration creates new tracker-prefixed tables and leaves the legacy transactions and recurring tables in place.
+The versioned migrations reshape the legacy transaction and recurring data into the tracker schema, then remove the duplicate legacy tables. `tracker_transactions` and `tracker_recurring_rules` are the sole application records after migration.
 
-1. Put the existing Neon pooled connection string in DATABASE_URL.
-2. Pause writes from the old app, take a Neon point-in-time/branch backup, and run npm run db:backup where pg_dump is installed.
-3. Run npm run db:migrate. Migrations are versioned and recorded in tracker_migrations.
-4. Run node scripts/validate-migration.mjs. Do not cut over unless transaction/rule counts, excluded counts, category counts, and totals per currency match.
-5. Keep the old app and source tables available during the verification window. Roll back by stopping new writes, running db/rollback-to-legacy.sql, comparing the restored records, and switching deployment to the old app.
+1. Stop writes from any older app version.
+2. Set `DATABASE_URL`, take a Neon restore point, and run `pnpm run db:backup` (`pg_dump` must be installed).
+3. Run `pnpm run db:migrate`; applied versions are recorded in `tracker_migrations`.
+4. Run `pnpm run db:validate` and review the tracker integrity report.
 
-Legacy recurrence rules are copied. Monthly rules are activated; other legacy frequencies are preserved as archived rules until their behavior is deliberately supported. The initial scheduler catches up every monthly occurrence from each rule's next eligible occurrence.
+The source tables are removed by migration 006. Restore the pre-migration backup to roll back; the old schema is not kept live alongside the tracker tables.
+
+Recurring rules support monthly cadence. The migration preserves tracker records and their scheduled occurrence links, uses `Asia/Kolkata` for local-time interpretation, and imports post-migration owner transactions before removing the source tables.

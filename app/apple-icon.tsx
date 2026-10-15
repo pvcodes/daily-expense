@@ -5,14 +5,12 @@ export const contentType = "image/png";
 
 export default function AppleIcon() {
   return new ImageResponse(
-    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#496d5d", borderRadius: 42 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: 88 }}>
-        <div style={{ height: 9, borderRadius: 8, background: "#f8f7f3" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 9, borderRadius: 8, background: "#f8f7f3" }} />
-          <div style={{ width: 15, height: 15, borderRadius: 99, background: "#d5a66d" }} />
+    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#77375e", borderRadius: 42 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 94, height: 94, border: "6px solid #faf6ef", borderRadius: 30, position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 54, height: 54, border: "6px solid #faf6ef", borderRadius: 18 }}>
+          <div style={{ width: 18, height: 18, borderRadius: 99, background: "#d4785e" }} />
         </div>
-        <div style={{ height: 9, borderRadius: 8, background: "#f8f7f3" }} />
+        <div style={{ position: "absolute", right: -11, top: 35, width: 18, height: 24, borderRadius: 8, background: "#faf6ef" }} />
       </div>
     </div>,
     size

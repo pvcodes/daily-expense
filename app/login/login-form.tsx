@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { ArrowRight, BookOpen, LockKeyhole } from "lucide-react";
+import { ArrowRight, LockKeyhole } from "lucide-react";
+import { BrandMark } from "@/components/ui";
 
 export default function LoginForm() {
   const [password, setPassword] = useState("");
@@ -37,12 +38,12 @@ export default function LoginForm() {
     <main className="login-page">
       <form className="login-card" onSubmit={submit}>
         <div className="brand">
-          <span className="brand-mark"><BookOpen size={20} /></span>
+          <BrandMark />
           <span className="brand-copy"><strong>Pocket Ledger</strong><small>YOUR PERSONAL MONEY SPACE</small></span>
         </div>
         <h1>Welcome back</h1>
         <p>Your spending, kept private and easy to understand.</p>
-        <div className="form-grid">
+        <div className="login-form-grid">
           <div className="field">
             <label htmlFor="password">Your password</label>
             <input id="password" type="password" autoComplete="current-password" required value={password}
@@ -53,7 +54,7 @@ export default function LoginForm() {
             <LockKeyhole size={16} /> {busy ? "Checking…" : "Unlock ledger"} <ArrowRight size={15} />
           </button>
         </div>
-        <p style={{ margin: "18px 0 0", fontSize: 11 }}>Only your fixed password can open this tracker.</p>
+        <p className="login-footnote">Only your fixed password can open this tracker.</p>
       </form>
     </main>
   );

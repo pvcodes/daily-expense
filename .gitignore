@@ -5,3 +5,8 @@ node_modules
 coverage
 *.log
 backups/
+.vercel/
+.dual-graph/
+.dual-graph-context/
+CODEX.md
+exported_transactions.csv
