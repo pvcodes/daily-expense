@@ -28,11 +28,12 @@ export async function GET(request: Request) {
         ? ` AND (t.notes ILIKE '%' || $${n} || '%' OR c.name ILIKE '%' || $${n} || '%' OR t.notes % $${n} OR c.name % $${n})`
         : ` AND (t.notes ILIKE '%' || $${n} || '%' OR c.name ILIKE '%' || $${n} || '%')`;
     }
-    const count = await query<{ total: string }>(
+    const countValues = values.slice();
+    const countQuery = query<{ total: string }>(
       "SELECT COUNT(*)::text AS total FROM tracker_transactions t JOIN tracker_categories c ON c.id = t.category_id " + filter,
-      values
+      countValues
     );
-    const totals = await query<{ included: string; excluded: string }>(
+    const totalsQuery = query<{ included: string; excluded: string }>(
       "SELECT COUNT(*) FILTER (WHERE include_in_analysis = TRUE)::text AS included, " +
       "COUNT(*) FILTER (WHERE include_in_analysis = FALSE)::text AS excluded FROM tracker_transactions"
     );
@@ -40,10 +41,11 @@ export async function GET(request: Request) {
     const fuzzyOrder = search.length >= 3
       ? `CASE WHEN t.notes % $2 OR c.name % $2 THEN GREATEST(similarity(t.notes, $2), similarity(c.name, $2)) ELSE 0 END DESC, `
       : "";
-    const result = await query(
-      selectTransactions + filter + ` ORDER BY ${fuzzyOrder}t.occurred_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
+    const resultQuery = query(
+      selectTransactions + filter + ` ORDER BY ${fuzzyOrder}t.occurred_at DESC, t.id DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
       values
     );
+    const [count, totals, result] = await Promise.all([countQuery, totalsQuery, resultQuery]);
     const total = Number(count.rows[0]?.total || 0);
     return NextResponse.json({ transactions: result.rows, page, pageSize, total, pageCount: Math.max(1, Math.ceil(total / pageSize)), includedTotal: Number(totals.rows[0]?.included || 0), excludedTotal: Number(totals.rows[0]?.excluded || 0) });
   } catch (error) {

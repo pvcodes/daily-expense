@@ -94,3 +94,35 @@ export async function PATCH(request: Request, context: RouteContext) {
     client.release();
   }
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+  if (!(await validateSameOrigin(request))) return NextResponse.json({ error: "Request origin rejected." }, { status: 403 });
+  const client = await getPool().connect();
+  try {
+    await requireSession();
+    const { id } = await context.params;
+    await client.query("BEGIN");
+    const rule = await client.query("SELECT archived FROM tracker_recurring_rules WHERE id = $1 FOR UPDATE", [id]);
+    if (!rule.rowCount) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
+    }
+    if (!rule.rows[0].archived) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Only archived recurring rules can be deleted." }, { status: 409 });
+    }
+    await client.query(
+      "UPDATE tracker_transactions SET recurring_rule_id = NULL, occurrence_date = NULL, updated_at = NOW() WHERE recurring_rule_id = $1",
+      [id]
+    );
+    await client.query("DELETE FROM tracker_recurring_rules WHERE id = $1", [id]);
+    await client.query("COMMIT");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    const status = (error as { status?: number }).status || 500;
+    return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not delete this recurring expense." }, { status });
+  } finally {
+    client.release();
+  }
+}

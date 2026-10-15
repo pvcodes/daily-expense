@@ -40,7 +40,7 @@ export function DailyBars({ rows, currency }: { rows: Analytics["daily"]; curren
   return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
     <CartesianGrid stroke="var(--line)" strokeDasharray="2 5" vertical={false} />
     <XAxis dataKey="date" tickFormatter={(value) => String(value).slice(-2)} tickLine={false} axisLine={false} interval="preserveStartEnd" tick={{ fill: "var(--muted)", fontSize: 9 }} />
-    <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} />
+    <YAxis domain={([, dataMax]) => [0, dataMax > 0 ? dataMax * 1.08 : 1]} allowDataOverflow tickCount={4} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(Math.round(Number(value)))} />
     <Tooltip labelFormatter={(value) => dateLabel(String(value) + "T00:00:00Z", { day: "numeric", month: "short" })} formatter={(value) => money(Number(value), currency)} contentStyle={tooltipStyle} />
     <Bar dataKey="amount" fill="var(--chart-coral)" radius={[5, 5, 0, 0]} maxBarSize={24} />
   </BarChart></ResponsiveContainer></div>;
@@ -50,7 +50,7 @@ export function WeekdayBars({ rows, currency }: { rows: Analytics["weekdays"]; c
   return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
     <CartesianGrid stroke="var(--line)" strokeDasharray="2 5" vertical={false} />
     <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 10 }} />
-    <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} />
+    <YAxis domain={([, dataMax]) => [0, dataMax > 0 ? dataMax * 1.08 : 1]} allowDataOverflow tickCount={4} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(Math.round(Number(value)))} />
     <Tooltip formatter={(value) => [money(Number(value), currency), "Average"]} contentStyle={tooltipStyle} />
     <Bar dataKey="amount" fill="var(--chart-plum)" radius={[5, 5, 0, 0]} maxBarSize={28} />
   </BarChart></ResponsiveContainer></div>;

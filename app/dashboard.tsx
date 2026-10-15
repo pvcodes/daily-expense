@@ -37,9 +37,8 @@ export default function Dashboard() {
   const recurringReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const loadCore = useCallback(async () => {
-    const [includedData, excludedData, categoryData, recurringData] = await Promise.all([
+    const [includedData, categoryData, recurringData] = await Promise.all([
       api<{ transactions: Transaction[]; total: number }>("/api/transactions?page=1&pageSize=5"),
-      api<{ total: number }>("/api/transactions?excluded=true&page=1&pageSize=1"),
       api<{ categories: Category[] }>("/api/categories"),
       api<{ rules: RecurringRule[] }>("/api/recurring")
     ]);

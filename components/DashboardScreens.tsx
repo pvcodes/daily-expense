@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search } from "lucide-react";
+import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
 import { api } from "@/lib/client";
 import { dateLabel, money } from "@/lib/format";
@@ -138,6 +138,14 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
     try { await api("/api/recurring/" + encodeURIComponent(rule.id), { method: "PATCH", body: JSON.stringify({ updates }) }); onReload(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update this rule."); }
   }
+  async function removeArchived(rule: RecurringRule) {
+    if (!window.confirm(`Delete the archived ${rule.category_name} rule? Existing transactions will be kept.`)) return;
+    setError("");
+    try {
+      await api("/api/recurring/" + encodeURIComponent(rule.id), { method: "DELETE" });
+      onReload();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete this rule."); }
+  }
   const active = rules.filter((rule) => !rule.archived);
   const archived = rules.filter((rule) => rule.archived);
   return <>
@@ -162,7 +170,8 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
     </section> : <EmptyState icon={<CalendarDays size={21} />} title="No recurring rules yet" copy="Set rent, subscriptions, and regular expenses once. We’ll add each due occurrence." action={<button type="button" className="secondary-button" onClick={() => onEdit(null)}><Plus size={15} /> Add a rule</button>} />}
     {archived.length > 0 && <section className="archived-section"><SectionHeading title="Archived" action={<span className="count-label">{archived.length}</span>} />
       {archived.map((rule) => <div className="archived-row" key={rule.id}><span>{rule.category_name} · {money(Math.abs(Number(rule.amount)), rule.currency)}</span>
-        <button type="button" className="text-action" onClick={() => update(rule, { archived: false, paused: false })}>Restore</button></div>)}
+        <div className="archived-actions"><button type="button" className="text-action" onClick={() => update(rule, { archived: false, paused: false })}>Restore</button>
+          <button type="button" className="icon-button archived-delete" aria-label={`Delete archived ${rule.category_name} rule`} onClick={() => removeArchived(rule)}><Trash2 size={15} /></button></div></div>)}
     </section>}
   </>;
 }
