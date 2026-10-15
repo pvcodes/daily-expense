@@ -37,6 +37,19 @@ export type RecurringRule = {
   cadence: string;
 };
 
+export type CronRun = {
+  id: string;
+  request_id: string | null;
+  source: "vercel_cron" | "http";
+  status: "running" | "succeeded" | "failed";
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number | null;
+  generated_count: number | null;
+  error_name: string | null;
+  error_code: string | null;
+};
+
 export type Analytics = {
   totals: { currency: string; amount: string; previous_amount: string }[];
   months: { month: string; currency: string; amount: string }[];

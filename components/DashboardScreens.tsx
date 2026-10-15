@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
+import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Clock3, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
 import { api } from "@/lib/client";
 import { dateLabel, money } from "@/lib/format";
 import type { DashboardView, RecurringDraft } from "@/components/dashboard-types";
 import { MonthPicker } from "@/components/MonthPicker";
 import { TransactionList } from "@/components/TransactionRow";
+import { CronRunHistory } from "@/components/CronRunHistory";
 import { DataTable, EmptySpark, EmptyState, IconFor, Notice, PageHeading, SectionHeading, SegmentedControl, SkeletonBlock } from "@/components/ui";
 
 const ChartLoading = () => <SkeletonBlock className="chart-skeleton" />;
@@ -134,6 +135,7 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
   rules: RecurringRule[]; loading: boolean; onEdit: (rule: RecurringDraft | null) => void; onReload: () => void;
 }) {
   const [error, setError] = useState("");
+  const [showCronRuns, setShowCronRuns] = useState(false);
   async function update(rule: RecurringRule, updates: Record<string, unknown>) {
     setError("");
     try { await api("/api/recurring/" + encodeURIComponent(rule.id), { method: "PATCH", body: JSON.stringify({ updates }) }); onReload(); }
@@ -152,6 +154,10 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
   return <>
     <PageHeading eyebrow="REPEATS, ON AUTOPILOT" title="Recurring" copy="Regular expenses, already taken care of." action={<button type="button" className="primary-icon-button" aria-label="Add recurring expense" onClick={() => onEdit(null)}><Plus size={18} /></button>} />
     {error && <Notice>{error}</Notice>}
+    <section className="cron-monitor" aria-labelledby="cron-monitor-title">
+      <SectionHeading title="Automation activity" id="cron-monitor-title" action={<button type="button" className="secondary-button cron-toggle" aria-expanded={showCronRuns} aria-controls="cron-run-history" onClick={() => setShowCronRuns((open) => !open)}><Clock3 size={15} aria-hidden="true" />{showCronRuns ? "Hide run history" : "View run history"}</button>} />
+      {showCronRuns && <div id="cron-run-history"><CronRunHistory /></div>}
+    </section>
     {loading ? <SkeletonBlock className="list-skeleton" /> : active.length ? <section className="rules-list" aria-labelledby="current-rules-title">
       <SectionHeading title="Current rules" action={<span className="count-label">{active.length}</span>} className="compact-heading" id="current-rules-title" />
       {active.map((rule) => <div className="recurring-row" key={rule.id}>
