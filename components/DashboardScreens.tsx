@@ -111,7 +111,7 @@ export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion:
         { value: "excluded", label: "Excluded", count: excludedTotal }
       ]} />
       <label className="search-field"><Search size={16} aria-hidden="true" /><span className="sr-only">Search activity</span>
-        <input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Search category or note" />
+        <input type="search" enterKeyHint="search" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Search category or note" />
       </label>
     </div>
     {error ? <Notice>{error}</Notice> : loading && !rows.length ? <SkeletonBlock className="list-skeleton" /> : rows.length ? <>

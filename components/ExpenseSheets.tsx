@@ -66,7 +66,7 @@ function CategoryPicker({ categories, value, onChange }: { categories: Category[
   return <div className="field">
     <span className="field-label" id="entry-category-label">Category</span>
     {categories.length > 5 && <label className="category-search"><Search size={15} aria-hidden="true" /><span className="sr-only">Search categories</span>
-      <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a category" />
+      <input type="search" enterKeyHint="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a category" />
     </label>}
     <div className="category-picker" role="group" aria-labelledby="entry-category-label">
       {visibleCategories.map((category) => <button type="button" key={category.id} aria-pressed={category.id === value}
@@ -109,7 +109,7 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
     <form className="entry-form" onSubmit={save}>
       <label className="sr-only" htmlFor="expense-amount">Amount</label>
       <div className="amount-field"><span aria-hidden="true">{currency}</span>
-        <input ref={amountRef} autoFocus id="expense-amount" type="number" inputMode="decimal" required
+        <input ref={amountRef} autoFocus id="expense-amount" type="number" inputMode="decimal" enterKeyHint="done" required
           min={1 / (10 ** currencyFractionDigits(currency))} step={1 / (10 ** currencyFractionDigits(currency))}
           placeholder="0" value={amount} onChange={(event) => setAmount(event.target.value)} aria-describedby="entry-amount-hint" />
       </div>
@@ -120,7 +120,7 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
           <input className="expense-date-time-input" aria-label="Date" id="expense-date" type="date" required value={occurredAt.slice(0, 10)} onChange={(event) => setOccurredAt(event.target.value + occurredAt.slice(10))} />
           <input className="expense-date-time-input" aria-label="Time" id="expense-time" type="time" required value={occurredAt.slice(11, 16)} onChange={(event) => setOccurredAt(occurredAt.slice(0, 10) + "T" + event.target.value)} />
         </div>
-        <div className="field"><label htmlFor="expense-notes">Note <span className="muted">(optional)</span></label><input id="expense-notes" maxLength={300} placeholder="What was it for?" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
+        <div className="field"><label htmlFor="expense-notes">Note <span className="muted">(optional)</span></label><input id="expense-notes" enterKeyHint="done" autoCapitalize="sentences" autoCorrect="on" maxLength={300} placeholder="What was it for?" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
         <div className="toggle-row"><div className="toggle-copy"><strong>Include in analysis</strong><small>{included ? "Shown in charts and totals" : "Hidden from charts and totals"}</small></div>
           <button type="button" role="switch" aria-checked={included} aria-label="Include in analysis" className={"switch" + (included ? " on" : "")} onClick={() => setIncluded(!included)} />
         </div>
@@ -164,17 +164,17 @@ export function RecurringSheet({ draft, categories, onClose, onSaved, returnFocu
   return <BottomSheet eyebrow="MONTHLY REPEAT" title={editing ? "Edit future expenses" : "New recurring expense"} onClose={onClose} focusRef={returnFocusRef}>
     <form className="entry-form recurring-form" onSubmit={save}>
       <label className="field-label" htmlFor="rule-amount">Amount</label>
-      <div className="amount-field"><span aria-hidden="true">{currency}</span><input ref={amountRef} autoFocus id="rule-amount" type="number" inputMode="decimal" min={1 / (10 ** currencyFractionDigits(currency))} step={1 / (10 ** currencyFractionDigits(currency))} required placeholder="0" value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
+      <div className="amount-field"><span aria-hidden="true">{currency}</span><input ref={amountRef} autoFocus id="rule-amount" type="number" inputMode="decimal" enterKeyHint="done" min={1 / (10 ** currencyFractionDigits(currency))} step={1 / (10 ** currencyFractionDigits(currency))} required placeholder="0" value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
       <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} />
       <div className="form-two-columns recurring-fields">
         <div className="field"><label htmlFor="rule-start">Starts on</label><input id="rule-start" type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} /></div>
         <div className="field"><label htmlFor="rule-time">Local time</label><input id="rule-time" type="time" required value={time} onChange={(event) => setTime(event.target.value)} /></div>
-        <div className="field"><label htmlFor="rule-day">Day each month</label><input id="rule-day" type="number" min="1" max="31" required value={day} onChange={(event) => setDay(Number(event.target.value))} /></div>
+        <div className="field"><label htmlFor="rule-day">Day each month</label><input id="rule-day" type="number" inputMode="numeric" enterKeyHint="done" min="1" max="31" required value={day} onChange={(event) => setDay(Number(event.target.value))} /></div>
         <div className="field"><label htmlFor="rule-end">Ends on <span className="muted">(optional)</span></label><input id="rule-end" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></div>
       </div>
       <details className="entry-details"><summary>Note and currency</summary><div className="entry-details-content">
         <div className="field"><label htmlFor="rule-currency">Currency</label><input id="rule-currency" maxLength={3} autoCapitalize="characters" value={currency} onChange={(event) => setCurrency(event.target.value.toUpperCase())} /></div>
-        <div className="field"><label htmlFor="rule-note">Note <span className="muted">(optional)</span></label><input id="rule-note" maxLength={300} placeholder="Rent, subscription…" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
+        <div className="field"><label htmlFor="rule-note">Note <span className="muted">(optional)</span></label><input id="rule-note" enterKeyHint="done" autoCapitalize="sentences" autoCorrect="on" maxLength={300} placeholder="Rent, subscription…" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
       </div></details>
       <p className="field-hint">Short months use their final day. Due entries keep this local time.</p>
       {error && <p className="error-message" role="alert">{error}</p>}
