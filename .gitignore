@@ -11,3 +11,13 @@ backups/
 .dual-graph-context/
 CODEX.md
 exported_transactions.csv
+
+# Local agent tooling and one-time design inputs (not part of the app)
+.agents/
+CLAUDE.md
+opencode.json
+skills-lock.json
+schema.json
+
+# Local agent session logs
+codex-session-*.md
