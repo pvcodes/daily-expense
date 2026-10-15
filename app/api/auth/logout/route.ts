@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE } from "@/lib/auth";
+import { destroySession, requireSession, validateSameOrigin } from "@/lib/auth";
 
-export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(AUTH_COOKIE, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-  return res;
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  if (!(await validateSameOrigin(request))) return NextResponse.json({ error: "Request origin rejected." }, { status: 403 });
+  try {
+    await requireSession();
+    await destroySession();
+    return NextResponse.json({ ok: true });
+  } catch {
+    await destroySession();
+    return NextResponse.json({ ok: true });
+  }
 }

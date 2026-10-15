@@ -1,132 +1,56 @@
-import { after, NextResponse } from "next/server";
-import {
-  initSchemaOnce,
-  listTransactions,
-  upsertMany,
-  deleteTransactions,
-  clearAllTransactions,
-  countTransactions,
-  seedCustomCategories,
-  applyRecurring,
-} from "@/lib/db";
-import { sessionUserId } from "@/lib/auth";
-import type { Transaction } from "@/lib/types";
+import { NextResponse } from "next/server";
+import { requireSession, validIsoCurrency, validateSameOrigin } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { validAmountForCurrency } from "@/lib/format";
 
-async function ensureSchema() {
-  try {
-    await initSchemaOnce();
-  } catch {
-    // schema race between cold starts is fine; queries will still work
-  }
-}
+export const runtime = "nodejs";
 
-const unauthorized = () =>
-  NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-/**
- * Adopting the categories already in the ledger as user-added ones is a
- * one-shot per user: seedCustomCategories checks for its own marker row, so
- * repeat calls cost one indexed lookup and then do nothing.
- */
-async function seedCategories(userId: string) {
-  try {
-    await seedCustomCategories(userId);
-  } catch {
-    // non-fatal: the client still falls back to the defaults
-  }
-}
+const selectTransactions =
+  "SELECT t.id, t.occurred_at, t.category_id, c.name AS category_name, c.icon AS category_icon, " +
+  "t.amount::text, t.currency::text, t.notes, t.include_in_analysis, t.recurring_rule_id, t.occurrence_date " +
+  "FROM tracker_transactions t JOIN tracker_categories c ON c.id = t.category_id ";
 
 export async function GET(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
   try {
-    await ensureSchema();
-    await applyRecurring(userId).catch(() => {
-      // non-fatal: recurring catch-up must never break listing
-    });
-    const txs = await listTransactions(userId);
-    // Category adoption does not affect the ledger response. Run this
-    // one-time migration after sending transactions so it cannot delay first paint.
-    after(() => seedCategories(userId));
-    return NextResponse.json({ transactions: txs, count: txs.length });
-  } catch (e) {
-    return NextResponse.json(
-      { error: (e as Error).message },
-      { status: 500 }
+    await requireSession();
+    const url = new URL(request.url);
+    const excluded = url.searchParams.get("excluded") === "true";
+    const result = await query(
+      selectTransactions + "WHERE t.include_in_analysis = $1 ORDER BY t.occurred_at DESC",
+      [!excluded]
     );
+    return NextResponse.json({ transactions: result.rows });
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500;
+    return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not load transactions." }, { status });
   }
+}
+
+function validDateTime(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value);
 }
 
 export async function POST(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
+  if (!(await validateSameOrigin(request))) return NextResponse.json({ error: "Request origin rejected." }, { status: 403 });
   try {
+    await requireSession();
     const body = await request.json();
-    const txs: Transaction[] = Array.isArray(body)
-      ? body
-      : Array.isArray(body?.transactions)
-      ? body.transactions
-      : [];
-    const deleteIds: unknown[] = Array.isArray(body?.deleteIds) ? body.deleteIds : [];
-    if (txs.length === 0 && deleteIds.length === 0) {
-      return NextResponse.json({ error: "No transactions provided" }, { status: 400 });
+    if (!validAmountForCurrency(body.amount, body.currency || "INR") || !validDateTime(body.occurred_at) ||
+        typeof body.category_id !== "string" || !validIsoCurrency(body.currency || "INR") ||
+        (body.notes !== undefined && (typeof body.notes !== "string" || body.notes.length > 300)) ||
+        (body.include_in_analysis !== undefined && typeof body.include_in_analysis !== "boolean")) {
+      return NextResponse.json({ error: "Check the amount, date, category, currency, and notes." }, { status: 400 });
     }
-    if (txs.length > 20000 || deleteIds.length > 20000) {
-      return NextResponse.json({ error: "Too many transactions" }, { status: 413 });
-    }
-    for (const id of deleteIds) {
-      if (typeof id !== "string" || id.length > 64) {
-        return NextResponse.json(
-          { error: "Invalid deleteIds" },
-          { status: 400 }
-        );
-      }
-    }
-    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d/;
-    for (const t of txs) {
-      if (
-        typeof t.id !== "string" ||
-        t.id.length > 64 ||
-        typeof t.date !== "string" ||
-        !DATE_RE.test(t.date) ||
-        typeof t.time !== "string" ||
-        !TIME_RE.test(t.time) ||
-        typeof t.category !== "string" ||
-        t.category.length > 100 ||
-        typeof t.price !== "number" ||
-        !Number.isFinite(t.price) ||
-        typeof t.currency !== "string" ||
-        t.currency.length > 8 ||
-        typeof t.notes !== "string" ||
-        t.notes.length > 2000
-      ) {
-        return NextResponse.json(
-          { error: "Invalid transaction shape. Need id, date, category, price" },
-          { status: 400 }
-        );
-      }
-    }
-    const delSet = new Set(deleteIds as string[]);
-    const toUpsert = txs.filter((t) => !delSet.has(t.id));
-    await ensureSchema();
-    await upsertMany(userId, toUpsert);
-    await deleteTransactions(userId, deleteIds as string[]);
-    const count = await countTransactions(userId);
-    return NextResponse.json({ ok: true, count, upserted: txs.length });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
-  try {
-    await ensureSchema();
-    await clearAllTransactions(userId);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    const result = await query(
+      "INSERT INTO tracker_transactions (id, occurred_at, category_id, amount, currency, notes, include_in_analysis) " +
+      "VALUES (gen_random_uuid()::text, ($1::timestamp AT TIME ZONE 'Asia/Kolkata'), $2, $3::numeric(18,4), $4, $5, $6) " +
+      "RETURNING id",
+      [body.occurred_at, body.category_id, String(body.amount), body.currency || "INR", body.notes || "", body.include_in_analysis !== false]
+    );
+    return NextResponse.json({ id: result.rows[0].id }, { status: 201 });
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500;
+    const message = error instanceof Error ? error.message : "";
+    return NextResponse.json({ error: status === 401 ? "Sign in again." : message.includes("foreign key") ? "Choose a valid category." : "Could not save this expense." }, { status });
   }
 }

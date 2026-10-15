@@ -1,0 +1,150 @@
+{
+  "transactions": [
+    {
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "time",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "category",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "currency",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'INR'::text"
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'me'::text"
+    },
+    {
+      "column_name": "include_in_analysis",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "column_name": "recurring_rule_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "recurring": [
+    {
+      "column_name": "user_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'me'::text"
+    },
+    {
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "category",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "frequency",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "start_date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "time",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'00:00'::text"
+    },
+    {
+      "column_name": "last_generated",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "include_in_analysis",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "column_name": "paused",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    }
+  ]
+}

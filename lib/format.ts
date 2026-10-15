@@ -1,48 +1,38 @@
-const INTL = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-export function formatMoney(value: number, currency = "INR"): string {
-  if (currency === "INR") return INTL.format(Math.abs(value));
+export function money(value: string | number, currency = "INR") {
+  const amount = typeof value === "string" ? Number(value) : value;
   try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: Math.abs(value) >= 1000 ? 0 : 2,
-    }).format(Math.abs(value));
+    const digits = new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions().maximumFractionDigits;
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount);
   } catch {
-    return `${Math.abs(value).toFixed(2)} ${currency}`;
+    return currency + " " + amount.toFixed(2);
   }
 }
 
-export function formatDate(iso: string): string {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+export function currencyFractionDigits(currency: string): number {
+  try {
+    return new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
+  } catch {
+    return 2;
+  }
 }
 
-export function formatTime(t: string): string {
-  if (!t) return "";
-  return t.slice(0, 5);
+export function validAmountForCurrency(value: unknown, currency: string) {
+  const text = String(value ?? "");
+  if (!/^\d{1,14}(\.\d{1,4})?$/.test(text) || !Number.isFinite(Number(text)) || Number(text) <= 0) return false;
+  const decimals = text.includes(".") ? text.split(".")[1].length : 0;
+  return decimals <= currencyFractionDigits(currency);
 }
 
-/** Today's date in LOCAL time as yyyy-MM-dd (toISOString would be UTC). */
-export function localTodayISO(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function dateLabel(value: string, options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }) {
+  return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", ...options }).format(new Date(value));
 }
 
-export function localNowTime(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
-
-/** formatMoney keeps the absolute amount; this restores the sign for lists. */
-export function moneyWithSign(value: number): string {
-  return value < 0 ? `-${formatMoney(value)}` : `+${formatMoney(value)}`;
+export function localDateTimeInput(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).formatToParts(date);
+  const get = (name: string) => parts.find((part) => part.type === name)?.value || "";
+  return get("year") + "-" + get("month") + "-" + get("day") + "T" + get("hour") + ":" + get("minute");
 }

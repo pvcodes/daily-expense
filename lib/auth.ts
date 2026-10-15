@@ -1,110 +1,127 @@
-import { constantTimeEq, isKnownUser, USER_ID_RE } from "./users";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { cookies, headers } from "next/headers";
+import { query } from "@/lib/db";
 
-export const AUTH_COOKIE = "app_auth";
-const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+const COOKIE = "pocket_ledger_session";
+const SESSION_DAYS = 30;
 
-function toBase64Url(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function secret() {
+  return process.env.SESSION_SECRET || "";
 }
 
-async function hmac(payload: string): Promise<string> {
-  // APP_SECRET is preferred; APP_PASSWORD stays as the fallback so existing
-  // deployments keep working without adding another variable.
-  const secret = process.env.APP_SECRET || process.env.APP_PASSWORD || "";
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(payload)
-  );
-  return toBase64Url(sig);
+function tokenHash(token: string) {
+  return createHmac("sha256", secret()).update(token).digest("hex");
 }
 
-export async function createAuthToken(userId: string): Promise<string> {
-  if (!USER_ID_RE.test(userId)) throw new Error(`Invalid user id: ${userId}`);
-  const exp = Date.now() + MAX_AGE_MS;
-  const payload = `${userId}.${exp}`;
-  const mac = await hmac(payload);
-  return `${payload}.${mac}`;
-}
-
-/**
- * Returns the signed-in user id, or null when the cookie is missing, tampered
- * with, expired, or names a user that no longer exists in APP_USERS.
- */
-export async function verifyAuthToken(
-  token: string | undefined | null
-): Promise<string | null> {
+export async function getSession() {
+  if (!secret() || !process.env.DATABASE_URL) return null;
+  const jar = await cookies();
+  const token = jar.get(COOKIE)?.value;
   if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [id, expStr, mac] = parts;
-  const exp = Number(expStr);
-  if (!USER_ID_RE.test(id)) return null;
-  if (!Number.isFinite(exp) || exp < Date.now()) return null;
-  const expected = await hmac(`${id}.${expStr}`);
-  if (!constantTimeEq(mac, expected)) return null;
-  return isKnownUser(id) ? id : null;
+  const hash = tokenHash(token);
+  const result = await query<{ token_hash: string }>(
+    "SELECT token_hash FROM tracker_sessions WHERE token_hash = $1 AND expires_at > NOW()",
+    [hash]
+  );
+  return result.rowCount ? { authenticated: true as const } : null;
 }
 
-function readCookie(req: Request, name: string): string | undefined {
-  const header = req.headers.get("cookie");
-  if (!header) return undefined;
-  for (const part of header.split(";")) {
-    const eq = part.indexOf("=");
-    if (eq < 0) continue;
-    if (part.slice(0, eq).trim() !== name) continue;
-    return decodeURIComponent(part.slice(eq + 1).trim());
+export async function requireSession() {
+  const session = await getSession();
+  if (!session) {
+    const error = new Error("Authentication required");
+    Object.assign(error, { status: 401 });
+    throw error;
   }
-  return undefined;
+  return session;
 }
 
-/** User id behind a request, or null if unauthenticated. */
-export async function sessionUserId(req: Request): Promise<string | null> {
-  return verifyAuthToken(readCookie(req, AUTH_COOKIE));
+export async function createSession() {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  await query("DELETE FROM tracker_sessions WHERE expires_at <= NOW()");
+  await query(
+    "INSERT INTO tracker_sessions(token_hash, expires_at) VALUES ($1, $2)",
+    [tokenHash(token), expiresAt]
+  );
+  const jar = await cookies();
+  jar.set(COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt
+  });
 }
 
-// In-memory per-IP limiter for auth attempts. Vercel serverless instances are
-// ephemeral, so this is best-effort per instance — it still stops casual
-// brute-force without adding infra.
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 8;
-
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-export function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") || "unknown";
-}
-
-export function checkRateLimit(ip: string): {
-  ok: boolean;
-  retryAfterSec: number;
-} {
-  const now = Date.now();
-  const entry = attempts.get(ip);
-  if (!entry || entry.resetAt <= now) {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { ok: true, retryAfterSec: 0 };
+export async function destroySession() {
+  const jar = await cookies();
+  const token = jar.get(COOKIE)?.value;
+  if (token && secret()) {
+    await query("DELETE FROM tracker_sessions WHERE token_hash = $1", [tokenHash(token)]);
   }
-  entry.count += 1;
-  if (entry.count > MAX_ATTEMPTS) {
-    const retryAfterSec = Math.ceil((entry.resetAt - now) / 1000);
-    return { ok: false, retryAfterSec };
-  }
-  return { ok: true, retryAfterSec: 0 };
+  jar.set(COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(0)
+  });
 }
 
-export function clearRateLimit(ip: string) {
-  attempts.delete(ip);
+export function passwordMatches(candidate: string) {
+  const expected = process.env.TRACKER_PASSWORD || "";
+  if (!expected || !candidate) return false;
+  const a = createHash("sha256").update(candidate).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+export async function loginKey() {
+  const headerList = await headers();
+  const forwarded = headerList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const address = forwarded || headerList.get("x-real-ip") || "unknown";
+  return createHmac("sha256", secret()).update("login:" + address).digest("hex");
+}
+
+export async function verifyCronSecret(request: Request) {
+  const expected = process.env.CRON_SECRET || "";
+  const candidate = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  if (!expected || !candidate) return false;
+  const a = createHash("sha256").update(candidate).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+export function validIsoCurrency(value: string) {
+  if (!/^[A-Z]{3}$/.test(value)) return false;
+  try {
+    const supportedValues = Intl.supportedValuesOf?.("currency");
+    return supportedValues ? supportedValues.includes(value) : (new Intl.NumberFormat("en", { style: "currency", currency: value }), true);
+  } catch {
+    return false;
+  }
+}
+
+export async function validateSameOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  let parsedOrigin: URL;
+  try {
+    parsedOrigin = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (parsedOrigin.protocol !== "http:" && parsedOrigin.protocol !== "https:") return false;
+
+  // In development, Next.js may construct request.url using its internal host
+  // while the browser connects through the machine's LAN address. Validate
+  // against the incoming Host header so same-origin requests work in that case.
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+    || request.headers.get("host");
+  if (!host || parsedOrigin.host.toLowerCase() !== host.toLowerCase()) return false;
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProto ? `${forwardedProto}:` : new URL(request.url).protocol;
+  return parsedOrigin.protocol === protocol;
 }

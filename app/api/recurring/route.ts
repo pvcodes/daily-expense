@@ -1,108 +1,51 @@
 import { NextResponse } from "next/server";
-import {
-  initSchemaOnce,
-  listRecurring,
-  upsertRecurring,
-  deleteRecurring,
-  applyRecurring,
-} from "@/lib/db";
-import { sessionUserId } from "@/lib/auth";
-import { newId, type RecurringRule } from "@/lib/types";
+import { requireSession, validIsoCurrency, validateSameOrigin } from "@/lib/auth";
+import { getPool, query } from "@/lib/db";
+import { validAmountForCurrency } from "@/lib/format";
 
-const unauthorized = () =>
-  NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const runtime = "nodejs";
 
-async function ensureSchema() {
+export async function GET() {
   try {
-    await initSchemaOnce();
-  } catch {
-    // schema race between cold starts is fine
-  }
-}
-
-export async function GET(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
-  try {
-    await ensureSchema();
-    const rules = await listRecurring(userId);
-    return NextResponse.json({ rules });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    await requireSession();
+    const result = await query(
+      "SELECT r.id, r.category_id, c.name AS category_name, c.icon AS category_icon, r.amount::text, " +
+      "r.currency::text, r.notes, to_char(r.start_date,'YYYY-MM-DD') AS start_date, " +
+      "to_char(r.end_date,'YYYY-MM-DD') AS end_date, r.day_of_month, " +
+      "r.run_at_local_time::text, to_char(r.next_occurrence_date,'YYYY-MM-DD') AS next_occurrence_date, r.paused, r.archived, r.cadence " +
+      "FROM tracker_recurring_rules r JOIN tracker_categories c ON c.id=r.category_id " +
+      "ORDER BY r.archived, r.paused, r.next_occurrence_date"
+    );
+    return NextResponse.json({ rules: result.rows });
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500;
+    return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not load recurring expenses." }, { status });
   }
 }
 
 export async function POST(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
+  if (!(await validateSameOrigin(request))) return NextResponse.json({ error: "Request origin rejected." }, { status: 403 });
   try {
+    await requireSession();
     const body = await request.json();
-    const rules: RecurringRule[] = Array.isArray(body)
-      ? body
-      : Array.isArray(body?.rules)
-        ? body.rules
-        : body && typeof body === "object" && body.category
-          ? [body as RecurringRule]
-          : [];
-    if (rules.length === 0) {
-      return NextResponse.json({ error: "No rules provided" }, { status: 400 });
+    if (!validAmountForCurrency(body.amount, body.currency || "INR") || typeof body.category_id !== "string" ||
+        !validIsoCurrency(body.currency || "INR") || !/^\d{4}-\d{2}-\d{2}$/.test(body.start_date || "") ||
+        !Number.isInteger(Number(body.day_of_month)) || Number(body.day_of_month) < 1 || Number(body.day_of_month) > 31 ||
+        !/^\d{2}:\d{2}$/.test(body.run_at_local_time || "") ||
+        (body.notes !== undefined && (typeof body.notes !== "string" || body.notes.length > 300)) ||
+        (body.end_date && !/^\d{4}-\d{2}-\d{2}$/.test(body.end_date))) {
+      return NextResponse.json({ error: "Check amount, category, start date, day, time, and currency." }, { status: 400 });
     }
-    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-    for (const r of rules) {
-      if (
-        typeof r.category !== "string" ||
-        r.category.length > 100 ||
-        typeof r.price !== "number" ||
-        !Number.isFinite(r.price) ||
-        typeof r.notes !== "string" ||
-        r.notes.length > 2000 ||
-        (r.frequency !== "monthly" && r.frequency !== "yearly") ||
-        typeof r.startDate !== "string" ||
-        !DATE_RE.test(r.startDate)
-      ) {
-        return NextResponse.json(
-          { error: "Invalid rule. Need category, price, frequency, startDate" },
-          { status: 400 }
-        );
-      }
-    }
-    await ensureSchema();
-    for (const r of rules) {
-      await upsertRecurring(userId, {
-        id: typeof r.id === "string" && r.id ? r.id : newId(),
-        category: r.category,
-        price: r.price,
-        notes: r.notes || "",
-        frequency: r.frequency,
-        startDate: r.startDate,
-        time: typeof r.time === "string" && r.time ? r.time : "00:00",
-        lastGenerated: typeof r.lastGenerated === "string" ? r.lastGenerated : null,
-        includeInAnalysis: r.includeInAnalysis === true,
-        paused: r.paused === true,
-      });
-    }
-    // Materialize any already-due occurrences right away.
-    await applyRecurring(userId);
-    const out = await listRecurring(userId);
-    return NextResponse.json({ ok: true, rules: out });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  const userId = await sessionUserId(request);
-  if (!userId) return unauthorized();
-  try {
-    const url = new URL(request.url);
-    const id = url.searchParams.get("id");
-    if (!id || id.length > 64) {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
-    }
-    await ensureSchema();
-    await deleteRecurring(userId, id);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    const result = await query(
+      "INSERT INTO tracker_recurring_rules (id, category_id, amount, currency, notes, cadence, start_date, end_date, " +
+      "day_of_month, run_at_local_time, next_occurrence_date) " +
+      "VALUES (gen_random_uuid()::text, $1, $2::numeric(18,4), $3, $4, 'monthly', $5::date, $6::date, $7, $8::time, " +
+      "tracker_first_month_occurrence($5::date, $7::smallint)) RETURNING id",
+      [body.category_id, String(body.amount), body.currency || "INR", body.notes || "", body.start_date, body.end_date || null, Number(body.day_of_month), body.run_at_local_time]
+    );
+    return NextResponse.json({ id: result.rows[0].id }, { status: 201 });
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500;
+    return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not save this recurring expense." }, { status });
   }
 }

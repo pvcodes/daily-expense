@@ -1,47 +1,25 @@
-"use client";
-
-import Link from "next/link";
+import { Archive } from "lucide-react";
+import { dateLabel, money } from "@/lib/format";
 import type { Transaction } from "@/lib/types";
-import { categoryColor } from "@/lib/types";
-import { formatDate, formatMoney, formatTime, moneyWithSign } from "@/lib/format";
+import { IconFor } from "@/components/ui";
 
-export default function TransactionRow({
-  tx,
-  showCategory = true,
-  compact = false,
-}: {
-  tx: Transaction;
-  showCategory?: boolean;
-  compact?: boolean;
-}) {
-  const sub = [
-    formatDate(tx.date),
-    tx.time && tx.time !== "00:00" ? formatTime(tx.time) : null,
-    showCategory ? tx.category : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+export function TransactionRow({ transaction, onEdit }: { transaction: Transaction; onEdit: (transaction: Transaction) => void }) {
+  const amount = Math.abs(Number(transaction.amount));
+  const date = dateLabel(transaction.occurred_at, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  return <button type="button" className="transaction-row" onClick={() => onEdit(transaction)}
+    aria-label={`Edit ${transaction.category_name}, ${money(amount, transaction.currency)}`}>
+    <span className="category-icon"><IconFor icon={transaction.category_icon} /></span>
+    <span className="transaction-main">
+      <strong>{transaction.notes || transaction.category_name}</strong>
+      <small>{date}{transaction.notes ? ` · ${transaction.category_name}` : ""}</small>
+      {!transaction.include_in_analysis && <span className="analysis-tag"><Archive size={12} aria-hidden="true" /> Excluded from insights</span>}
+    </span>
+    <span className="transaction-amount">−{money(amount, transaction.currency)}
+      <small>{transaction.recurring_rule_id ? "Recurring" : "Expense"}</small>
+    </span>
+  </button>;
+}
 
-  return (
-    <Link
-      href={`/transactions/${tx.id}`}
-      className={`flex min-w-0 flex-1 items-center gap-3 active:bg-panel-2 ${
-        compact ? "px-4 py-2" : "px-3 py-2.5"
-      }`}
-    >
-      <span
-        className="h-9 w-1.5 shrink-0 rounded-full"
-        style={{ background: categoryColor(tx.category) }}
-      />
-      <div className="min-w-0 flex-1">
-        <div className={`truncate text-ink ${compact ? "text-sm" : "text-sm font-medium"}`}>
-          {tx.notes || tx.category}
-        </div>
-        <div className="truncate text-xs text-ink-3">{sub}</div>
-      </div>
-      <div className={`shrink-0 tabular-nums text-ink ${compact ? "text-sm font-medium" : "text-sm font-semibold"}`}>
-        {tx.price < 0 ? moneyWithSign(tx.price) : formatMoney(tx.price)}
-      </div>
-    </Link>
-  );
+export function TransactionList({ transactions, onEdit }: { transactions: Transaction[]; onEdit: (transaction: Transaction) => void }) {
+  return <div className="transaction-list">{transactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onEdit={onEdit} />)}</div>;
 }

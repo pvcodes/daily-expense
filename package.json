@@ -1,35 +1,29 @@
 {
-  "name": "expense-tracker-app",
-  "version": "0.1.0",
+  "name": "personal-expense-tracker",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "expense": "node --env-file=.env --import tsx scripts/cli-expense.ts",
-    "seed": "node --env-file=.env --import tsx scripts/seed-db.ts",
-    "seed:overwrite": "node --env-file=.env --import tsx scripts/seed-db.ts --overwrite",
-    "export:csv": "node --env-file=.env --import tsx scripts/export-csv.ts"
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:validate": "node scripts/validate-migration.mjs",
+    "db:backup": "node scripts/backup.mjs"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
-    "next": "16.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "recharts": "^3.10.1"
+    "lucide-react": "^0.468.0",
+    "dotenv": "^16.6.1",
+    "next": "^15.5.0",
+    "pg": "^8.16.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
-    "tailwindcss": "^4",
-    "tsx": "^4.23.13",
-    "typescript": "^5",
-    "vitest": "^4.1.11"
+    "@types/node": "^22.15.30",
+    "@types/pg": "^8.15.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^5.8.3"
   }
 }
