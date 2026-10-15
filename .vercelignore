@@ -1,0 +1,20 @@
+# Local-only files that must never be uploaded to Vercel.
+# The Vercel CLI does NOT honour .gitignore, so they are listed explicitly here.
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local database dumps
+backups/
+
+# Local agent/tool state and session logs
+codex-session-*.md
+.dual-graph/
+.dual-graph-context/
+.agents/
+skills-lock.json
+
+# Generated build state
+tsconfig.tsbuildinfo
