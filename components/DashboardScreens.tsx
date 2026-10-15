@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Clock3, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
 import { api } from "@/lib/client";
+import { readActivityPage, writeActivityPage, type ActivityPage } from "@/lib/activity-cache";
 import { dateLabel, money } from "@/lib/format";
 import type { DashboardView, RecurringDraft } from "@/components/dashboard-types";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -23,7 +24,8 @@ function PageLoading({ label }: { label: string }) {
   return <div className="page-loading" role="status" aria-label={label}><SkeletonBlock className="skeleton-heading" /><SkeletonBlock className="skeleton-feature" /><SkeletonBlock className="skeleton-list" /><span className="sr-only">{label}</span></div>;
 }
 
-export function HomeScreen({ analytics, transactions, includedCount, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
+import { memo, useDeferredValue } from "react";
+export const HomeScreen = memo(function HomeScreen({ analytics, transactions, includedCount, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
   analytics: Analytics | null; transactions: Transaction[]; includedCount: number; loading: boolean; month: string;
   recurringCount: number;
   setMonth: (month: string) => void; onEdit: (tx: Transaction) => void; onAdd: () => void; onNavigate: (view: DashboardView) => void;
@@ -66,19 +68,21 @@ export function HomeScreen({ analytics, transactions, includedCount, recurringCo
         <EmptyState icon={<EmptySpark />} title="A fresh page" copy="Add your first expense. It only takes a moment." action={<button type="button" className="secondary-button" onClick={onAdd}><Plus size={15} /> Add expense</button>} />}
     </section>
   </>;
-}
+});
 
-export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion: number; onEdit: (tx: Transaction) => void }) {
+export const TransactionsScreen = memo(function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion: number; onEdit: (tx: Transaction) => void }) {
   const pageSize = 20;
+  const [seed] = useState(() => readActivityPage());
   const [tab, setTab] = useState<"included" | "excluded">("included");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [page, setPage] = useState(1);
-  const [rows, setRows] = useState<Transaction[]>([]);
-  const [total, setTotal] = useState(0);
-  const [includedTotal, setIncludedTotal] = useState(0);
-  const [excludedTotal, setExcludedTotal] = useState(0);
-  const [pageCount, setPageCount] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Transaction[]>(seed?.transactions ?? []);
+  const [total, setTotal] = useState(seed?.total ?? 0);
+  const [includedTotal, setIncludedTotal] = useState(seed?.includedTotal ?? 0);
+  const [excludedTotal, setExcludedTotal] = useState(seed?.excludedTotal ?? 0);
+  const [pageCount, setPageCount] = useState(seed?.pageCount ?? 1);
+  const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState("");
   const currentPage = Math.min(page, pageCount);
   useEffect(() => {
@@ -87,12 +91,14 @@ export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion:
     const timer = window.setTimeout(() => {
       setLoading(true);
       const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), excluded: String(tab === "excluded") });
-      if (search.trim()) params.set("search", search.trim());
-      void api<{ transactions: Transaction[]; total: number; pageCount: number; includedTotal: number; excludedTotal: number }>(`/api/transactions?${params}`, { signal: controller.signal })
+      const term = deferredSearch.trim();
+      if (term) params.set("search", term);
+      void api<ActivityPage>(`/api/transactions?${params}`, { signal: controller.signal })
         .then((data) => {
           if (!active) return;
           setRows(data.transactions); setTotal(data.total); setPageCount(data.pageCount); setError("");
           setIncludedTotal(data.includedTotal); setExcludedTotal(data.excludedTotal);
+          if (page === 1 && !term && tab === "included") writeActivityPage(data);
           if (page > data.pageCount) setPage(data.pageCount);
         })
         .catch((cause) => {
@@ -100,9 +106,9 @@ export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion:
           setError(cause instanceof Error ? cause.message : "Could not load activity.");
         })
         .finally(() => { if (active) setLoading(false); });
-    }, search.trim() ? 250 : 0);
+    }, deferredSearch.trim() ? 250 : 0);
     return () => { active = false; controller.abort(); window.clearTimeout(timer); };
-  }, [tab, search, page, refreshVersion]);
+  }, [tab, deferredSearch, page, refreshVersion]);
   function updateSearch(value: string) { setSearch(value); setPage(1); }
   return <>
     <PageHeading eyebrow="YOUR MONEY, YOUR RECORD" title="Activity" copy="Tap an expense to review or edit it." />
@@ -115,7 +121,8 @@ export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion:
         <input type="search" enterKeyHint="search" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Search category or note" />
       </label>
     </div>
-    {error ? <Notice>{error}</Notice> : loading && !rows.length ? <SkeletonBlock className="list-skeleton" /> : rows.length ? <>
+    {error && <Notice>{error}</Notice>}
+    {loading && !rows.length ? <SkeletonBlock className="list-skeleton" /> : rows.length ? <>
       <div aria-busy={loading} className={loading ? "transaction-results is-refreshing" : "transaction-results"}><TransactionList transactions={rows} onEdit={onEdit} /></div>
       <nav className="pagination" aria-label="Transaction pages">
         <span>Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)} of {total}</span>
@@ -125,13 +132,14 @@ export function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion:
           <button type="button" className="secondary-button" onClick={() => setPage(currentPage + 1)} disabled={currentPage >= pageCount}>Next</button>
         </div>
       </nav>
-    </> :
+    </> : !error ? (
       <EmptyState icon={tab === "excluded" ? <Archive size={20} /> : <EmptySpark />} title={search ? "No matching expenses" : tab === "excluded" ? "Nothing excluded" : "No activity yet"}
-        copy={search ? "Try a different category or note." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."} />}
+        copy={search ? "Try a different category or note." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."} />
+    ) : null}
   </>;
-}
+});
 
-export function RecurringScreen({ rules, loading, onEdit, onReload }: {
+export const RecurringScreen = memo(function RecurringScreen({ rules, loading, onEdit, onReload }: {
   rules: RecurringRule[]; loading: boolean; onEdit: (rule: RecurringDraft | null) => void; onReload: () => void;
 }) {
   const [error, setError] = useState("");
@@ -181,9 +189,9 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
           <button type="button" className="icon-button archived-delete" aria-label={`Delete archived ${rule.category_name} rule`} onClick={() => removeArchived(rule)}><Trash2 size={15} /></button></div></div>)}
     </section>}
   </>;
-}
+});
 
-export function InsightsScreen({ analytics, loading, month, setMonth }: {
+export const InsightsScreen = memo(function InsightsScreen({ analytics, loading, month, setMonth }: {
   analytics: Analytics | null; loading: boolean; month: string; setMonth: (month: string) => void;
 }) {
   const currencies = useMemo(() => Array.from(new Set((analytics?.totals || []).map((item) => item.currency).concat((analytics?.categories || []).map((item) => item.currency)))), [analytics?.totals, analytics?.categories]);
@@ -236,7 +244,7 @@ export function InsightsScreen({ analytics, loading, month, setMonth }: {
       </div>
     </>}
   </>;
-}
+});
 
 function Heatmap({ daily, month, currency }: { daily: Analytics["daily"]; month: string; currency: string }) {
   const { count, first, values, max } = useMemo(() => {
