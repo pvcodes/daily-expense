@@ -175,6 +175,8 @@ h3 { margin-bottom: 0; font-size: 15px; }
 .page-loading .skeleton-feature { margin-bottom: 18px; }
 .notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; padding: 11px 13px; border: 1px solid color-mix(in oklch, var(--bad) 20%, var(--line)); border-radius: 14px; background: color-mix(in oklch, var(--bad) 7%, var(--surface)); color: var(--bad); font-size: 11px; line-height: 1.4; }
 .error-message { margin: 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in oklch, var(--bad) 8%, var(--surface)); color: var(--bad); font-size: 11px; }
+.delete-button { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 42px; margin-top: 8px; border: 1px solid color-mix(in oklch, var(--bad) 25%, var(--line)); border-radius: 12px; background: transparent; color: var(--bad); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.delete-button:disabled { opacity: .55; cursor: wait; }
 .success-message { color: var(--good); font-size: 11px; font-weight: 700; }
 
 .bottom-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; padding: 7px 13px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: color-mix(in oklch, var(--surface) 95%, transparent); backdrop-filter: blur(18px); transition: opacity .16s ease-out, transform .16s ease-out; }
@@ -227,6 +229,8 @@ h3 { margin-bottom: 0; font-size: 15px; }
 .archive-button { min-width: 38px; min-height: 38px; border-color: transparent; background: transparent; color: var(--muted); }
 .archived-section { margin-top: 27px; padding-top: 19px; border-top: 1px solid var(--line); }
 .archived-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 47px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.archived-actions { display: flex; align-items: center; gap: 8px; }
+.archived-delete { min-width: 36px; min-height: 36px; color: var(--bad); border-color: transparent; background: transparent; }
 
 .sheet-backdrop { position: fixed; z-index: 60; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: env(safe-area-inset-top) 0 0; background: oklch(17% 0.035 320 / .47); overscroll-behavior: contain; }
 .sheet { width: min(100%, 580px); overflow-x: hidden; overflow-y: auto; padding: 11px 19px calc(17px + env(safe-area-inset-bottom)); border: 1px solid var(--line); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--paper); box-shadow: var(--shadow); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; animation: sheet-enter .2s ease-out; }

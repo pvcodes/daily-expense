@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
-import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search } from "lucide-react";
+import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, Category, RecurringRule, Transaction } from "@/lib/types";
 import { api } from "@/lib/client";
 import { dateLabel, money } from "@/lib/format";
@@ -43,8 +43,8 @@ function TrendChart({ analytics, currency, compact = false }: { analytics: Analy
   </>;
 }
 
-export function HomeScreen({ analytics, transactions, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
-  analytics: Analytics | null; transactions: Transaction[]; loading: boolean; month: string;
+export function HomeScreen({ analytics, transactions, includedCount, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
+  analytics: Analytics | null; transactions: Transaction[]; includedCount: number; loading: boolean; month: string;
   recurringCount: number;
   setMonth: (month: string) => void; onEdit: (tx: Transaction) => void; onAdd: () => void; onNavigate: (view: DashboardView) => void;
 }) {
@@ -69,7 +69,7 @@ export function HomeScreen({ analytics, transactions, recurringCount, loading, m
       </div>
     </section>
     <div className="quick-stats" aria-label="This month at a glance">
-      <div><span>Entries</span><strong>{included.length}</strong></div>
+      <div><span>Entries</span><strong>{includedCount}</strong></div>
       <div><span>Recurring rules</span><strong>{recurringCount}</strong></div>
       <div><span>Currencies</span><strong>{totals.length || 0}</strong></div>
     </div>
@@ -88,33 +88,56 @@ export function HomeScreen({ analytics, transactions, recurringCount, loading, m
   </>;
 }
 
-export function TransactionsScreen({ included, excluded, loading, onEdit }: {
-  included: Transaction[]; excluded: Transaction[]; loading: boolean; onEdit: (tx: Transaction) => void;
+export function TransactionsScreen({ includedCount, excludedCount, refreshToken, onEdit }: {
+  includedCount: number; excludedCount: number; refreshToken: number; onEdit: (tx: Transaction) => void;
 }) {
   const pageSize = 20;
   const [tab, setTab] = useState<"included" | "excluded">("included");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const list = tab === "included" ? included : excluded;
-  const rows = useMemo(() => list.filter((tx) => (tx.category_name + " " + tx.notes).toLowerCase().includes(search.toLowerCase())), [list, search]);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const [rows, setRows] = useState<Transaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const visibleRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  useEffect(() => { setPage(1); }, [tab, debouncedSearch]);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError("");
+    const params = new URLSearchParams({ limit: String(pageSize), page: String(page) });
+    if (tab === "excluded") params.set("excluded", "true");
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    api<{ transactions: Transaction[]; total: number }>(`/api/transactions?${params}`)
+      .then((result) => { if (active) {
+        setRows(result.transactions); setTotal(result.total);
+        setPage((current) => Math.min(current, Math.max(1, Math.ceil(result.total / pageSize))));
+      } })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "Could not load transactions."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [tab, page, debouncedSearch, refreshToken]);
   return <>
     <PageHeading eyebrow="YOUR MONEY, YOUR RECORD" title="Activity" copy="Tap an expense to review or edit it." />
     <div className="screen-tools">
       <SegmentedControl label="Analysis inclusion" value={tab} onChange={(value) => { setTab(value); setPage(1); }} options={[
-        { value: "included", label: "Included", count: included.length },
-        { value: "excluded", label: "Excluded", count: excluded.length }
+        { value: "included", label: "Included", count: includedCount },
+        { value: "excluded", label: "Excluded", count: excludedCount }
       ]} />
       <label className="search-field"><Search size={16} aria-hidden="true" /><span className="sr-only">Search activity</span>
         <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search category or note" />
       </label>
     </div>
-    {loading ? <SkeletonBlock className="list-skeleton" /> : rows.length ? <>
-      <TransactionList transactions={visibleRows} onEdit={onEdit} />
+    {error && <Notice>{error}</Notice>}
+    {loading ? <SkeletonBlock className="list-skeleton" /> : total ? <>
+      <TransactionList transactions={rows} onEdit={onEdit} />
       <nav className="pagination" aria-label="Transaction pages">
-        <span>Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, rows.length)} of {rows.length}</span>
+        <span>Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)} of {total}</span>
         <div>
           <button type="button" className="secondary-button" onClick={() => setPage(currentPage - 1)} disabled={currentPage <= 1}>Previous</button>
           <span className="pagination-page">{currentPage} / {pageCount}</span>
@@ -122,8 +145,8 @@ export function TransactionsScreen({ included, excluded, loading, onEdit }: {
         </div>
       </nav>
     </> :
-      <EmptyState icon={tab === "excluded" ? <Archive size={20} /> : <EmptySpark />} title={search ? "No matching expenses" : tab === "excluded" ? "Nothing excluded" : "No activity yet"}
-        copy={search ? "Try a different category or note." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."} />}
+      <EmptyState icon={tab === "excluded" ? <Archive size={20} /> : <EmptySpark />} title={debouncedSearch ? "No matching expenses" : tab === "excluded" ? "Nothing excluded" : "No activity yet"}
+        copy={debouncedSearch ? "Try a different category or note." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."} />}
   </>;
 }
 
@@ -135,6 +158,14 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
     setError("");
     try { await api("/api/recurring/" + encodeURIComponent(rule.id), { method: "PATCH", body: JSON.stringify({ updates }) }); onReload(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update this rule."); }
+  }
+  async function removeArchived(rule: RecurringRule) {
+    if (!window.confirm(`Delete the archived ${rule.category_name} rule? Existing transactions will be kept.`)) return;
+    setError("");
+    try {
+      await api("/api/recurring/" + encodeURIComponent(rule.id), { method: "DELETE" });
+      onReload();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete this rule."); }
   }
   const active = rules.filter((rule) => !rule.archived);
   const archived = rules.filter((rule) => rule.archived);
@@ -160,7 +191,8 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
     </section> : <EmptyState icon={<CalendarDays size={21} />} title="No recurring rules yet" copy="Set rent, subscriptions, and regular expenses once. We’ll add each due occurrence." action={<button type="button" className="secondary-button" onClick={() => onEdit(null)}><Plus size={15} /> Add a rule</button>} />}
     {archived.length > 0 && <section className="archived-section"><SectionHeading title="Archived" action={<span className="count-label">{archived.length}</span>} />
       {archived.map((rule) => <div className="archived-row" key={rule.id}><span>{rule.category_name} · {money(Math.abs(Number(rule.amount)), rule.currency)}</span>
-        <button type="button" className="text-action" onClick={() => update(rule, { archived: false, paused: false })}>Restore</button></div>)}
+        <div className="archived-actions"><button type="button" className="text-action" onClick={() => update(rule, { archived: false, paused: false })}>Restore</button>
+          <button type="button" className="icon-button archived-delete" aria-label={`Delete archived ${rule.category_name} rule`} onClick={() => removeArchived(rule)}><Trash2 size={15} /></button></div></div>)}
     </section>}
   </>;
 }

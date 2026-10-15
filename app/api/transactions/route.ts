@@ -15,11 +15,29 @@ export async function GET(request: Request) {
     await requireSession();
     const url = new URL(request.url);
     const excluded = url.searchParams.get("excluded") === "true";
-    const result = await query(
-      selectTransactions + "WHERE t.include_in_analysis = $1 ORDER BY t.occurred_at DESC",
-      [!excluded]
-    );
-    return NextResponse.json({ transactions: result.rows });
+    const limit = Math.max(1, Math.min(100, Number.parseInt(url.searchParams.get("limit") || "20", 10) || 20));
+    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1);
+    const offset = (page - 1) * limit;
+    const search = (url.searchParams.get("q") || "").trim().slice(0, 100);
+    const where =
+      "WHERE t.include_in_analysis = $1 AND ($2 = '' OR c.name ILIKE '%' || $2 || '%' OR t.notes ILIKE '%' || $2 || '%' OR c.name % $2 OR t.notes % $2) ";
+    const [countResult, result] = await Promise.all([
+      query<{ total: string }>(
+        "SELECT COUNT(*)::text AS total FROM tracker_transactions t JOIN tracker_categories c ON c.id = t.category_id " + where,
+        [!excluded, search]
+      ),
+      query(
+        selectTransactions + where +
+          "ORDER BY t.occurred_at DESC, t.id DESC LIMIT $3 OFFSET $4",
+        [!excluded, search, limit, offset]
+      )
+    ]);
+    return NextResponse.json({
+      transactions: result.rows,
+      page,
+      pageSize: limit,
+      total: Number(countResult.rows[0]?.total || 0)
+    });
   } catch (error) {
     const status = (error as { status?: number }).status || 500;
     return NextResponse.json({ error: status === 401 ? "Sign in again." : "Could not load transactions." }, { status });

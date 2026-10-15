@@ -21,7 +21,9 @@ export default function Dashboard() {
   const [view, setView] = useState<DashboardView>("home");
   const [month, setMonth] = useState(currentMonthKey);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [excluded, setExcluded] = useState<Transaction[]>([]);
+  const [includedCount, setIncludedCount] = useState(0);
+  const [excludedCount, setExcludedCount] = useState(0);
+  const [transactionsRevision, setTransactionsRevision] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -36,13 +38,15 @@ export default function Dashboard() {
 
   const loadCore = useCallback(async () => {
     const [includedData, excludedData, categoryData, recurringData] = await Promise.all([
-      api<{ transactions: Transaction[] }>("/api/transactions"),
-      api<{ transactions: Transaction[] }>("/api/transactions?excluded=true"),
+      api<{ transactions: Transaction[]; total: number }>("/api/transactions?limit=5"),
+      api<{ total: number }>("/api/transactions?excluded=true&limit=1"),
       api<{ categories: Category[] }>("/api/categories"),
       api<{ rules: RecurringRule[] }>("/api/recurring")
     ]);
     setTransactions(includedData.transactions);
-    setExcluded(excludedData.transactions);
+    setIncludedCount(includedData.total);
+    setExcludedCount(excludedData.total);
+    setTransactionsRevision((revision) => revision + 1);
     setCategories(categoryData.categories);
     setRules(recurringData.rules);
   }, []);
@@ -97,7 +101,7 @@ export default function Dashboard() {
     setSigningOut(true);
     try { await fetch("/api/auth/logout", { method: "POST" }); }
     finally {
-      setTransactions([]); setExcluded([]); setAnalytics(null);
+      setTransactions([]); setIncludedCount(0); setExcludedCount(0); setAnalytics(null);
       window.location.assign("/login");
     }
   }
@@ -112,8 +116,8 @@ export default function Dashboard() {
     </header>
     <main className="main-content" aria-label={pageTitle}>
       {error && <Notice onRetry={() => void reload()}>{error}</Notice>}
-      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} recurringCount={rules.filter((rule) => !rule.archived).length} loading={loading} month={month} setMonth={setMonth} onEdit={editTransaction} onAdd={() => openExpense(null)} onNavigate={setView} />}
-      {view === "transactions" && <TransactionsScreen included={transactions} excluded={excluded} loading={loading} onEdit={editTransaction} />}
+      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} includedCount={includedCount} recurringCount={rules.filter((rule) => !rule.archived).length} loading={loading} month={month} setMonth={setMonth} onEdit={editTransaction} onAdd={() => openExpense(null)} onNavigate={setView} />}
+      {view === "transactions" && <TransactionsScreen includedCount={includedCount} excludedCount={excludedCount} refreshToken={transactionsRevision} onEdit={editTransaction} />}
       {view === "recurring" && <RecurringScreen rules={rules} loading={loading} onEdit={openRecurring} onReload={() => void reloadRules()} />}
       {view === "insights" && <InsightsScreen analytics={analytics} loading={loading} month={month} setMonth={setMonth} />}
     </main>

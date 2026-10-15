@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowRight, Search, X } from "lucide-react";
+import { ArrowRight, Search, Trash2, X } from "lucide-react";
 import type { Category } from "@/lib/types";
 import { api } from "@/lib/client";
 import { currencyFractionDigits, localDateTimeInput } from "@/lib/format";
@@ -88,6 +88,7 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
   const [included, setIncluded] = useState(draft?.include_in_analysis ?? true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
 
   async function save(event: FormEvent) {
@@ -100,6 +101,16 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
       onSaved(); onClose();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save this expense."); }
     finally { setBusy(false); }
+  }
+
+  async function remove() {
+    if (!draft?.id || !window.confirm("Delete this transaction? This cannot be undone.")) return;
+    setError(""); setDeleteBusy(true);
+    try {
+      await api("/api/transactions/" + encodeURIComponent(draft.id), { method: "DELETE" });
+      onSaved(); onClose();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete this expense."); }
+    finally { setDeleteBusy(false); }
   }
 
   return <BottomSheet eyebrow={editing ? "EDIT TRANSACTION" : "QUICK ENTRY"} title={editing ? "Edit expense" : "Add an expense"} onClose={onClose} focusRef={returnFocusRef}>
@@ -126,6 +137,9 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
       <button className="primary-button entry-submit" type="submit" disabled={busy || !categoryId || !amount}>
         {busy ? "Saving…" : editing ? "Save changes" : "Save expense"}<ArrowRight size={16} aria-hidden="true" />
       </button>
+      {editing && <button className="delete-button" type="button" onClick={remove} disabled={busy || deleteBusy}>
+        <Trash2 size={15} aria-hidden="true" />{deleteBusy ? "Deleting…" : "Delete transaction"}
+      </button>}
     </form>
   </BottomSheet>;
 }
