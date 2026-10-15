@@ -19,7 +19,14 @@ export function BottomNav({ view, onNavigate, onAdd, addRef }: {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   useEffect(() => {
     const viewport = window.visualViewport;
-    const update = () => setKeyboardOpen(Boolean(viewport && window.innerHeight - viewport.height > 140));
+    let last = false;
+    // Guard so page scrolling (visualViewport fires per frame) never churns React state.
+    const update = () => {
+      const next = Boolean(viewport && window.innerHeight - viewport.height > 140);
+      if (next === last) return;
+      last = next;
+      setKeyboardOpen(next);
+    };
     viewport?.addEventListener("resize", update);
     viewport?.addEventListener("scroll", update);
     update();

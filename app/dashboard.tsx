@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { api } from "@/lib/client";
+import { clearActivityPage, writeActivityPage, type ActivityPage } from "@/lib/activity-cache";
 import { localDateTimeInput } from "@/lib/format";
 import type { Analytics, Category, RecurringRule, Transaction } from "@/lib/types";
 import type { DashboardView, RecurringDraft, TransactionDraft } from "@/components/dashboard-types";
@@ -35,23 +36,26 @@ export default function Dashboard() {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const expenseReturnFocusRef = useRef<HTMLElement | null>(null);
   const recurringReturnFocusRef = useRef<HTMLElement | null>(null);
+  const monthRef = useRef(month);
+  monthRef.current = month;
 
   const loadCore = useCallback(async () => {
     const [includedData, categoryData, recurringData] = await Promise.all([
-      api<{ transactions: Transaction[]; total: number }>("/api/transactions?page=1&pageSize=5"),
+      api<ActivityPage>("/api/transactions?page=1&pageSize=20"),
       api<{ categories: Category[] }>("/api/categories"),
       api<{ rules: RecurringRule[] }>("/api/recurring")
     ]);
     setTransactions(includedData.transactions);
     setIncludedCount(includedData.total);
+    writeActivityPage(includedData);
     setCategories(categoryData.categories);
     setRules(recurringData.rules);
   }, []);
 
-  const loadAnalytics = useCallback(async () => {
-    const result = await api<Analytics>("/api/analytics?month=" + month);
+  const loadAnalytics = useCallback(async (targetMonth: string) => {
+    const result = await api<Analytics>("/api/analytics?month=" + targetMonth);
     setAnalytics(result);
-  }, [month]);
+  }, []);
 
   const reloadRules = useCallback(async () => {
     try {
@@ -66,7 +70,7 @@ export default function Dashboard() {
     setError("");
     if (!hasLoaded.current) setLoading(true);
     try {
-      await Promise.all([loadCore(), loadAnalytics()]);
+      await Promise.all([loadCore(), loadAnalytics(monthRef.current)]);
       setRefreshVersion((version) => version + 1);
       hasLoaded.current = true;
     }
@@ -75,6 +79,11 @@ export default function Dashboard() {
   }, [loadCore, loadAnalytics]);
 
   useEffect(() => { void reload(); }, [reload]);
+  // Changing the month only needs fresh analytics; core data is month-independent.
+  useEffect(() => {
+    if (!hasLoaded.current) return;
+    void loadAnalytics(month).catch((cause) => setError(cause instanceof Error ? cause.message : "Could not load the ledger."));
+  }, [month, loadAnalytics]);
   useEffect(() => {
     if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
@@ -84,6 +93,7 @@ export default function Dashboard() {
     setTxEditor(draft);
   }, []);
   const closeExpense = useCallback(() => setTxEditor(undefined), []);
+  const addExpense = useCallback(() => openExpense(null), [openExpense]);
   const openRecurring = useCallback((draft: RecurringDraft | null = null) => {
     recurringReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setRuleEditor(draft);
@@ -103,7 +113,7 @@ export default function Dashboard() {
     setSigningOut(true);
     try { await fetch("/api/auth/logout", { method: "POST" }); }
     finally {
-      setTransactions([]); setAnalytics(null);
+      setTransactions([]); setAnalytics(null); clearActivityPage();
       window.location.assign("/login");
     }
   }
@@ -118,12 +128,12 @@ export default function Dashboard() {
     </header>
     <main className="main-content" aria-label={pageTitle}>
       {error && <Notice onRetry={() => void reload()}>{error}</Notice>}
-      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} includedCount={includedCount} recurringCount={rules.filter((rule) => !rule.archived).length} loading={loading} month={month} setMonth={setMonth} onEdit={editTransaction} onAdd={() => openExpense(null)} onNavigate={setView} />}
+      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} includedCount={includedCount} recurringCount={rules.filter((rule) => !rule.archived).length} loading={loading} month={month} setMonth={setMonth} onEdit={editTransaction} onAdd={addExpense} onNavigate={setView} />}
       {view === "transactions" && <TransactionsScreen refreshVersion={refreshVersion} onEdit={editTransaction} />}
       {view === "recurring" && <RecurringScreen rules={rules} loading={loading} onEdit={openRecurring} onReload={() => void reloadRules()} />}
       {view === "insights" && <InsightsScreen analytics={analytics} loading={loading} month={month} setMonth={setMonth} />}
     </main>
-    <BottomNav view={view} onNavigate={setView} onAdd={() => openExpense(null)} addRef={addButtonRef} />
+    <BottomNav view={view} onNavigate={setView} onAdd={addExpense} addRef={addButtonRef} />
     {txEditor !== undefined && <ExpenseSheet draft={txEditor} categories={categories} onClose={closeExpense} onSaved={() => void reload()} returnFocusRef={expenseReturnFocusRef} />}
     {ruleEditor !== undefined && <RecurringSheet draft={ruleEditor} categories={categories} onClose={closeRecurring} onSaved={() => void reload()} returnFocusRef={recurringReturnFocusRef} />}
   </div>;

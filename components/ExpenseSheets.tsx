@@ -15,9 +15,19 @@ function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
   const [, renderViewport] = useState(0);
   useEffect(() => {
     const view = window.visualViewport;
-    const sync = () => {
-      viewportHeight.current = `${view?.height || window.innerHeight}px`;
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const next = `${view?.height || window.innerHeight}px`;
+      if (next === viewportHeight.current) return;
+      viewportHeight.current = next;
       renderViewport((v) => v + 1);
+    };
+    // Coalesce the burst of resize/scroll events the iOS keyboard emits into one render per frame.
+    const sync = () => {
+      const next = `${view?.height || window.innerHeight}px`;
+      if (next === viewportHeight.current || frame) return;
+      frame = requestAnimationFrame(apply);
     };
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -26,6 +36,7 @@ function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
     view?.addEventListener("scroll", sync);
     window.addEventListener("resize", sync);
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       document.body.style.overflow = oldOverflow;
       view?.removeEventListener("resize", sync);
       view?.removeEventListener("scroll", sync);
