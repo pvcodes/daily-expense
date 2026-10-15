@@ -1,10 +1,11 @@
 # Local-only files that must never be uploaded to Vercel.
 # The Vercel CLI does NOT honour .gitignore, so they are listed explicitly here.
 
-# Secrets
+# Secrets and personal data
 .env
 .env.*
 !.env.example
+exported_transactions.csv
 
 # Local database dumps
 backups/
@@ -15,6 +16,21 @@ codex-session-*.md
 .dual-graph-context/
 .agents/
 skills-lock.json
+opencode.json
+CODEX.md
+CLAUDE.md
+AGENTS.md
 
-# Generated build state
+# Documentation and one-time design input (not needed to build or run)
+README.md
+MIGRATION.md
+schema.json
+
+# Database tooling runs locally, never in the Vercel build
+db/
+scripts/
+
+# Generated build state and local project metadata
 tsconfig.tsbuildinfo
+.next/
+.vercel/
