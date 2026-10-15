@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowRight, Search, X } from "lucide-react";
 import type { Category } from "@/lib/types";
 import { api } from "@/lib/client";
@@ -59,7 +59,10 @@ function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
 
 function CategoryPicker({ categories, value, onChange }: { categories: Category[]; value: string; onChange: (id: string) => void }) {
   const [search, setSearch] = useState("");
-  const visibleCategories = categories.filter((category) => category.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const visibleCategories = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return query ? categories.filter((category) => category.name.toLowerCase().includes(query)) : categories;
+  }, [categories, search]);
   return <div className="field">
     <span className="field-label" id="entry-category-label">Category</span>
     {categories.length > 5 && <label className="category-search"><Search size={15} aria-hidden="true" /><span className="sr-only">Search categories</span>

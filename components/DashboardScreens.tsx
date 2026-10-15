@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
@@ -27,11 +27,12 @@ export function HomeScreen({ analytics, transactions, includedCount, recurringCo
   recurringCount: number;
   setMonth: (month: string) => void; onEdit: (tx: Transaction) => void; onAdd: () => void; onNavigate: (view: DashboardView) => void;
 }) {
-  const recent = transactions.filter((tx) => tx.include_in_analysis).slice(0, 5);
+  const recent = useMemo(() => transactions.filter((tx) => tx.include_in_analysis).slice(0, 5), [transactions]);
   const totals = analytics?.totals || [];
-  const selectedCurrency = totals.find((row) => row.currency === "INR")?.currency || totals[0]?.currency || analytics?.months[0]?.currency || "INR";
+  const selectedCurrency = useMemo(() => totals.find((row) => row.currency === "INR")?.currency || totals[0]?.currency || analytics?.months[0]?.currency || "INR", [totals, analytics?.months]);
   const total = totals.find((row) => row.currency === selectedCurrency);
-  const monthName = new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(month + "-01T12:00:00"));
+  const monthName = useMemo(() => new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(month + "-01T12:00:00")), [month]);
+  const trendRows = useMemo(() => analytics?.months.filter((row) => row.currency === selectedCurrency).map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) })) || [], [analytics?.months, selectedCurrency]);
 
   if (loading && !analytics) return <PageLoading label="Loading your ledger" />;
   return <>
@@ -54,7 +55,7 @@ export function HomeScreen({ analytics, transactions, includedCount, recurringCo
 
     <section className="home-section">
       <SectionHeading title="Spending trend" action={<button type="button" className="text-action" onClick={() => onNavigate("insights")}>More insights <ArrowRight size={14} /></button>} />
-      {loading ? <SkeletonBlock className="chart-skeleton" /> : analytics?.months.length ? <><TrendChart analytics={analytics} currency={selectedCurrency} compact /><DataTable title="Six-month spending" rows={analytics.months.filter((row) => row.currency === selectedCurrency).map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) }))} /></> :
+      {loading ? <SkeletonBlock className="chart-skeleton" /> : analytics?.months.length ? <><TrendChart analytics={analytics} currency={selectedCurrency} compact /><DataTable title="Six-month spending" rows={trendRows} /></> :
         <EmptyState icon={<BarChart3 size={21} />} title="Your trend starts here" copy="As you add expenses, your month-to-month pattern will take shape." />}
     </section>
 
@@ -146,8 +147,8 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
       onReload();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete this rule."); }
   }
-  const active = rules.filter((rule) => !rule.archived);
-  const archived = rules.filter((rule) => rule.archived);
+  const active = useMemo(() => rules.filter((rule) => !rule.archived), [rules]);
+  const archived = useMemo(() => rules.filter((rule) => rule.archived), [rules]);
   return <>
     <PageHeading eyebrow="REPEATS, ON AUTOPILOT" title="Recurring" copy="Regular expenses, already taken care of." action={<button type="button" className="primary-icon-button" aria-label="Add recurring expense" onClick={() => onEdit(null)}><Plus size={18} /></button>} />
     {error && <Notice>{error}</Notice>}
@@ -179,14 +180,18 @@ export function RecurringScreen({ rules, loading, onEdit, onReload }: {
 export function InsightsScreen({ analytics, loading, month, setMonth }: {
   analytics: Analytics | null; loading: boolean; month: string; setMonth: (month: string) => void;
 }) {
-  const currencies = Array.from(new Set((analytics?.totals || []).map((item) => item.currency).concat((analytics?.categories || []).map((item) => item.currency))));
+  const currencies = useMemo(() => Array.from(new Set((analytics?.totals || []).map((item) => item.currency).concat((analytics?.categories || []).map((item) => item.currency)))), [analytics?.totals, analytics?.categories]);
   const [currency, setCurrency] = useState("");
   useEffect(() => { if (currencies.length && (!currency || !currencies.includes(currency))) setCurrency(currencies.includes("INR") ? "INR" : currencies[0]); }, [currencies.join(","), currency]);
   const selectedCurrency = currency && currencies.includes(currency) ? currency : currencies.includes("INR") ? "INR" : currencies[0] || "";
-  const categories = (analytics?.categories || []).filter((row) => row.currency === selectedCurrency);
-  const daily = (analytics?.daily || []).filter((row) => row.currency === selectedCurrency);
-  const weekdays = (analytics?.weekdays || []).filter((row) => row.currency === selectedCurrency);
-  const months = (analytics?.months || []).filter((row) => row.currency === selectedCurrency);
+  const categories = useMemo(() => (analytics?.categories || []).filter((row) => row.currency === selectedCurrency), [analytics?.categories, selectedCurrency]);
+  const daily = useMemo(() => (analytics?.daily || []).filter((row) => row.currency === selectedCurrency), [analytics?.daily, selectedCurrency]);
+  const weekdays = useMemo(() => (analytics?.weekdays || []).filter((row) => row.currency === selectedCurrency), [analytics?.weekdays, selectedCurrency]);
+  const months = useMemo(() => (analytics?.months || []).filter((row) => row.currency === selectedCurrency), [analytics?.months, selectedCurrency]);
+  const monthRows = useMemo(() => months.map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) })), [months, selectedCurrency]);
+  const categoryRows = useMemo(() => categories.map((row) => ({ label: row.category, value: money(row.amount, selectedCurrency) })), [categories, selectedCurrency]);
+  const dailyRows = useMemo(() => daily.map((row) => ({ label: row.date, value: money(row.amount, selectedCurrency) })), [daily, selectedCurrency]);
+  const weekdayRows = useMemo(() => weekdays.map((row) => ({ label: row.day, value: money(row.amount, selectedCurrency) })), [weekdays, selectedCurrency]);
   const total = analytics?.totals.find((row) => row.currency === selectedCurrency);
 
   return <>
@@ -199,7 +204,7 @@ export function InsightsScreen({ analytics, loading, month, setMonth }: {
 
       <div className="insights-layout">
       <section className="insight-section"><SectionHeading title="Spending over time" action={<span className="unit-label">6 months · {selectedCurrency}</span>} />
-        {months.length ? <><TrendChart analytics={{ ...(analytics as Analytics), months }} currency={selectedCurrency} /><DataTable title="Six-month spending" rows={months.map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) }))} /></> : <EmptyState title="No trend yet" copy="Monthly totals appear here when there are included expenses." />}
+        {months.length ? <><TrendChart analytics={{ ...(analytics as Analytics), months }} currency={selectedCurrency} /><DataTable title="Six-month spending" rows={monthRows} /></> : <EmptyState title="No trend yet" copy="Monthly totals appear here when there are included expenses." />}
       </section>
 
       <section className="insight-section"><SectionHeading title="Where it went" action={<span className="unit-label">This month</span>} />
@@ -209,16 +214,16 @@ export function InsightsScreen({ analytics, loading, month, setMonth }: {
             <span className="chart-swatch" style={{ background: chartColors[index % chartColors.length] }} />
             <span>{row.category}</span><small>{row.count}</small><strong>{money(row.amount, selectedCurrency)}</strong>
           </div>)}</div>
-          <DataTable title="Spending by category" rows={categories.map((row) => ({ label: row.category, value: money(row.amount, selectedCurrency) }))} />
+          <DataTable title="Spending by category" rows={categoryRows} />
         </> : <EmptyState title="No category totals" copy="Category patterns will show once this month has included expenses." />}
       </section>
 
       <section className="insight-section"><SectionHeading title="Spending by day" action={<span className="unit-label">Daily totals</span>} />
-        {daily.length ? <><DailyBars rows={daily} currency={selectedCurrency} /><DataTable title="Daily spending" rows={daily.map((row) => ({ label: row.date, value: money(row.amount, selectedCurrency) }))} /></> : <EmptyState title="No daily totals" copy="There are no included expenses to show for this month." />}
+        {daily.length ? <><DailyBars rows={daily} currency={selectedCurrency} /><DataTable title="Daily spending" rows={dailyRows} /></> : <EmptyState title="No daily totals" copy="There are no included expenses to show for this month." />}
       </section>
 
       <section className="insight-section"><SectionHeading title="Your weekly rhythm" action={<span className="unit-label">Average expense</span>} />
-        {weekdays.length ? <><WeekdayBars rows={weekdays} currency={selectedCurrency} /><DataTable title="Average expense by weekday" rows={weekdays.map((row) => ({ label: row.day, value: money(row.amount, selectedCurrency) }))} /></> : <EmptyState title="Not enough history yet" copy="Averages appear once there is spending to compare." />}
+        {weekdays.length ? <><WeekdayBars rows={weekdays} currency={selectedCurrency} /><DataTable title="Average expense by weekday" rows={weekdayRows} /></> : <EmptyState title="Not enough history yet" copy="Averages appear once there is spending to compare." />}
       </section>
 
       <section className="insight-section"><SectionHeading title="Daily rhythm" action={<span className="unit-label">{selectedCurrency}</span>} /><Heatmap daily={daily} month={month} currency={selectedCurrency} /></section>
@@ -228,10 +233,12 @@ export function InsightsScreen({ analytics, loading, month, setMonth }: {
 }
 
 function Heatmap({ daily, month, currency }: { daily: Analytics["daily"]; month: string; currency: string }) {
-  const count = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
-  const first = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1).getDay();
-  const values = new Map(daily.map((row) => [row.date.slice(-2), Number(row.amount)]));
-  const max = Math.max(...Array.from(values.values()), 1);
+  const { count, first, values, max } = useMemo(() => {
+    const count = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+    const first = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1).getDay();
+    const values = new Map(daily.map((row) => [row.date.slice(-2), Number(row.amount)]));
+    return { count, first, values, max: Math.max(...Array.from(values.values()), 1) };
+  }, [daily, month]);
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return <div className="heatmap" role="group" aria-label={`Daily spending for ${month}`}>
     {weekdays.map((day) => <span className="heatmap-day" key={day}>{day.slice(0, 1)}</span>)}
