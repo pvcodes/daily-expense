@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Clock3, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
@@ -24,7 +24,6 @@ function PageLoading({ label }: { label: string }) {
   return <div className="page-loading" role="status" aria-label={label}><SkeletonBlock className="skeleton-heading" /><SkeletonBlock className="skeleton-feature" /><SkeletonBlock className="skeleton-list" /><span className="sr-only">{label}</span></div>;
 }
 
-import { memo, useDeferredValue } from "react";
 export const HomeScreen = memo(function HomeScreen({ analytics, transactions, includedCount, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
   analytics: Analytics | null; transactions: Transaction[]; includedCount: number; loading: boolean; month: string;
   recurringCount: number;
@@ -75,7 +74,6 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
   const [seed] = useState(() => readActivityPage());
   const [tab, setTab] = useState<"included" | "excluded">("included");
   const [search, setSearch] = useState("");
-  const deferredSearch = useDeferredValue(search);
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Transaction[]>(seed?.transactions ?? []);
   const [total, setTotal] = useState(seed?.total ?? 0);
@@ -91,7 +89,7 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
     const timer = window.setTimeout(() => {
       setLoading(true);
       const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), excluded: String(tab === "excluded") });
-      const term = deferredSearch.trim();
+      const term = search.trim();
       if (term) params.set("search", term);
       void api<ActivityPage>(`/api/transactions?${params}`, { signal: controller.signal })
         .then((data) => {
@@ -106,9 +104,9 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
           setError(cause instanceof Error ? cause.message : "Could not load activity.");
         })
         .finally(() => { if (active) setLoading(false); });
-    }, deferredSearch.trim() ? 250 : 0);
+    }, search.trim() ? 250 : 0);
     return () => { active = false; controller.abort(); window.clearTimeout(timer); };
-  }, [tab, deferredSearch, page, refreshVersion]);
+  }, [tab, search, page, refreshVersion]);
   function updateSearch(value: string) { setSearch(value); setPage(1); }
   return <>
     <PageHeading eyebrow="YOUR MONEY, YOUR RECORD" title="Activity" copy="Tap an expense to review or edit it." />
