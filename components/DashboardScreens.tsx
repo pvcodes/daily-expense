@@ -1,10 +1,11 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Clock3, Lightbulb, Plus, Search, Trash2 } from "lucide-react";
+import { Archive, ArrowDownRight, ArrowRight, BarChart3, CalendarDays, CircleDollarSign, Clock3, HelpCircle, Lightbulb, Plus, Search, Trash2, X } from "lucide-react";
 import type { Analytics, RecurringRule, Transaction } from "@/lib/types";
 import { api } from "@/lib/client";
+import { parseSearchQuery, type SearchToken } from "@/lib/search-query";
 import { readActivityPage, writeActivityPage, type ActivityPage } from "@/lib/activity-cache";
 import { dateLabel, money } from "@/lib/format";
 import type { DashboardView, RecurringDraft } from "@/components/dashboard-types";
@@ -69,6 +70,17 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, in
   </>;
 });
 
+const FILTER_LABELS: Record<string, string> = { category: "Category", note: "Note", from: "From", to: "To", amount: "Amount" };
+const searchExamples = ["c:food", "c:shop*", "note:coffee", "amt:>500", "amt:100..500", "from:2026-01-01", "to:2026-03-31"];
+
+function filterValue(token: SearchToken) {
+  if (token.kind === "amount" && token.amount) {
+    const { op, value, upper } = token.amount;
+    return op === "between" ? `${value}–${upper}` : `${op === "=" ? "" : op}${value}`;
+  }
+  return token.value;
+}
+
 export const TransactionsScreen = memo(function TransactionsScreen({ refreshVersion, onEdit }: { refreshVersion: number; onEdit: (tx: Transaction) => void }) {
   const pageSize = 20;
   const [seed] = useState(() => readActivityPage());
@@ -82,7 +94,14 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
   const [pageCount, setPageCount] = useState(seed?.pageCount ?? 1);
   const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState("");
+  const [showFilterHelp, setShowFilterHelp] = useState(false);
   const currentPage = Math.min(page, pageCount);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const parsedSearch = useMemo(() => parseSearchQuery(search), [search]);
+  const filterChips = useMemo(
+    () => parsedSearch.tokens.filter((token) => token.kind !== "text" && token.kind !== "ignored"),
+    [parsedSearch]
+  );
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -108,6 +127,14 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
     return () => { active = false; controller.abort(); window.clearTimeout(timer); };
   }, [tab, search, page, refreshVersion]);
   function updateSearch(value: string) { setSearch(value); setPage(1); }
+  function removeFilter(raw: string) {
+    updateSearch(parsedSearch.tokens.filter((token) => token.raw !== raw).map((token) => token.raw).join(", "));
+  }
+  function addExample(example: string) {
+    const existing = search.replace(/[\s,]+$/, "");
+    updateSearch(existing ? `${existing}, ${example}` : example);
+    searchRef.current?.focus();
+  }
   return <>
     <PageHeading eyebrow="YOUR MONEY, YOUR RECORD" title="Activity" copy="Tap an expense to review or edit it." />
     <div className="screen-tools">
@@ -115,9 +142,44 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
         { value: "included", label: "Included", count: includedTotal },
         { value: "excluded", label: "Excluded", count: excludedTotal }
       ]} />
-      <label className="search-field"><Search size={16} aria-hidden="true" /><span className="sr-only">Search activity</span>
-        <input type="search" enterKeyHint="search" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Search category or note" />
-      </label>
+      <div className="search-row">
+        <label className="search-field"><Search size={16} aria-hidden="true" /><span className="sr-only">Search activity</span>
+          <input ref={searchRef} type="search" enterKeyHint="search" value={search} onChange={(event) => updateSearch(event.target.value)}
+            placeholder="Search · c:food, note:coffee, from:2026-01-01" />
+        </label>
+        <button type="button" className={"filter-help-button" + (showFilterHelp ? " on" : "")} aria-expanded={showFilterHelp} aria-controls="filter-help-panel"
+          onClick={() => setShowFilterHelp((open) => !open)}>
+          <HelpCircle size={16} aria-hidden="true" /><span>Filters</span>
+        </button>
+      </div>
+      {showFilterHelp && <section className="filter-help" id="filter-help-panel" aria-label="How to search with filters"
+        onKeyDown={(event) => { if (event.key === "Escape") setShowFilterHelp(false); }}>
+        <div className="filter-help-head">
+          <h3>How to search with filters</h3>
+          <button type="button" className="icon-button" aria-label="Close filter help" onClick={() => setShowFilterHelp(false)}><X size={15} aria-hidden="true" /></button>
+        </div>
+        <dl className="filter-help-list">
+          <div><dt>c:shop*</dt><dd>Category. Use <code>c:</code> or <code>category:</code>; <b>*</b> matches any ending.</dd></div>
+          <div><dt>n:coffee</dt><dd>Note text, via <code>n:</code> or <code>note:</code>. Quotes keep spaces: <code>n:&quot;coffee beans&quot;</code>.</dd></div>
+          <div><dt>amt:&gt;500</dt><dd>Amount, matched on the unsigned value. Also <code>{"< <= >= ="}</code> and ranges like <code>amt:100..500</code>.</dd></div>
+          <div><dt>from:2026-01-01</dt><dd>On or after a date. Add <code>to:2026-03-31</code> for an inclusive range.</dd></div>
+          <div><dt>coffee</dt><dd>Plain words match the note or category, and tolerate small typos.</dd></div>
+        </dl>
+        <p className="search-hint">Join filters with commas — <b>c:food, n:lunch, from:2026-01-01</b>. Tap an example to add it.</p>
+        <div className="search-help-chips">
+          {searchExamples.map((example) => <button type="button" className="category-chip" key={example} onClick={() => addExample(example)}>
+            <Plus size={13} aria-hidden="true" />{example}</button>)}
+        </div>
+        {search && <button type="button" className="text-action" onClick={() => updateSearch("")}>Clear search</button>}
+      </section>}
+      {filterChips.length > 0 && <div className="filter-chips" role="group" aria-label="Active filters">
+        {filterChips.map((token) => <span className="filter-chip" key={token.raw}>
+          {FILTER_LABELS[token.kind]}: {filterValue(token)}
+          <button type="button" aria-label={`Remove filter ${FILTER_LABELS[token.kind]}: ${filterValue(token)}`} onClick={() => removeFilter(token.raw)}><X size={12} aria-hidden="true" /></button>
+        </span>)}
+        <button type="button" className="text-action" onClick={() => updateSearch("")}>Clear all</button>
+      </div>}
+      {parsedSearch.ignored.length > 0 && <p className="search-hint" role="status">Not applied: {parsedSearch.ignored.join(", ")}</p>}
     </div>
     {error && <Notice>{error}</Notice>}
     {loading && !rows.length ? <SkeletonBlock className="list-skeleton" /> : rows.length ? <>
@@ -131,8 +193,10 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
         </div>
       </nav>
     </> : !error ? (
-      <EmptyState icon={tab === "excluded" ? <Archive size={20} /> : <EmptySpark />} title={search ? "No matching expenses" : tab === "excluded" ? "Nothing excluded" : "No activity yet"}
-        copy={search ? "Try a different category or note." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."} />
+      <EmptyState icon={tab === "excluded" ? <Archive size={20} /> : <EmptySpark />}
+        title={search ? filterChips.length ? "No matches for these filters" : "No matching expenses" : tab === "excluded" ? "Nothing excluded" : "No activity yet"}
+        copy={search ? "Remove a filter or try another word." : tab === "excluded" ? "Expenses excluded from insights can be restored here." : "Your expenses will appear here as you add them."}
+        action={search ? <button type="button" className="secondary-button" onClick={() => updateSearch("")}>Clear search</button> : undefined} />
     ) : null}
   </>;
 });
