@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowRight, Search, X } from "lucide-react";
+import { ArrowRight, Search, Trash2, X } from "lucide-react";
 import type { Category } from "@/lib/types";
 import { api } from "@/lib/client";
 import { currencyFractionDigits, localDateTimeInput } from "@/lib/format";
@@ -102,6 +102,10 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
   const [included, setIncluded] = useState(draft?.include_in_analysis ?? true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteRemark, setDeleteRemark] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
 
   async function save(event: FormEvent) {
@@ -114,6 +118,17 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
       onSaved(); onClose();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save this expense."); }
     finally { setBusy(false); }
+  }
+
+  async function remove() {
+    const remark = deleteRemark.trim();
+    if (!remark) { setDeleteError("A remark is required to delete this transaction."); return; }
+    setDeleteError(""); setDeleting(true);
+    try {
+      await api("/api/transactions/" + encodeURIComponent(draft!.id as string), { method: "DELETE", body: JSON.stringify({ remark }) });
+      onSaved(); onClose();
+    } catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Could not delete this transaction."); }
+    finally { setDeleting(false); }
   }
 
   return <BottomSheet eyebrow={editing ? "EDIT TRANSACTION" : "QUICK ENTRY"} title={editing ? "Edit expense" : "Add an expense"} onClose={onClose} focusRef={returnFocusRef}>
@@ -141,6 +156,29 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
         {busy ? "Saving…" : editing ? "Save changes" : "Save expense"}<ArrowRight size={16} aria-hidden="true" />
       </button>
     </form>
+    {editing && <div className="delete-zone">
+      {!confirmingDelete ? <button type="button" className="delete-trigger"
+        onClick={() => { setConfirmingDelete(true); setDeleteError(""); }}>
+        <Trash2 size={14} aria-hidden="true" /> Delete this expense
+      </button> : <form className="delete-confirm" onSubmit={(event) => { event.preventDefault(); void remove(); }}>
+        <div className="delete-confirm-copy">
+          <strong>Delete this expense?</strong>
+          <small>It is removed from your activity and insights, and kept as a deleted record with your remark.</small>
+        </div>
+        <div className="field">
+          <label htmlFor="delete-remark">Remark <span className="muted">(required)</span></label>
+          <input id="delete-remark" autoFocus enterKeyHint="done" autoCapitalize="sentences" maxLength={300}
+            placeholder="Why are you deleting it?" value={deleteRemark} onChange={(event) => setDeleteRemark(event.target.value)} />
+        </div>
+        {deleteError && <p className="error-message" role="alert">{deleteError}</p>}
+        <div className="delete-actions">
+          <button type="button" className="secondary-button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Cancel</button>
+          <button type="submit" className="danger-button" disabled={deleting || !deleteRemark.trim()}>
+            <Trash2 size={14} aria-hidden="true" />{deleting ? "Deleting…" : "Delete expense"}
+          </button>
+        </div>
+      </form>}
+    </div>}
   </BottomSheet>;
 }
 

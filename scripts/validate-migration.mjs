@@ -12,6 +12,7 @@ try {
       (SELECT COUNT(*)::int FROM tracker_recurring_rules) AS recurring_rules,
       (SELECT COUNT(*)::int FROM tracker_categories) AS categories,
       (SELECT COUNT(*)::int FROM tracker_transactions WHERE include_in_analysis = FALSE) AS excluded_transactions,
+      (SELECT COUNT(*)::int FROM tracker_transactions WHERE deleted_at IS NOT NULL) AS deleted_transactions,
       (SELECT COUNT(*)::int FROM tracker_transactions t LEFT JOIN tracker_categories c ON c.id = t.category_id WHERE c.id IS NULL) AS invalid_categories,
       (SELECT COUNT(*)::int FROM tracker_transactions t LEFT JOIN tracker_recurring_rules r ON r.id = t.recurring_rule_id WHERE t.recurring_rule_id IS NOT NULL AND r.id IS NULL) AS invalid_rules,
       (SELECT COUNT(*)::int FROM tracker_transactions WHERE (recurring_rule_id IS NULL) <> (occurrence_date IS NULL)) AS invalid_occurrence_pairs,
@@ -22,7 +23,7 @@ try {
   `);
   console.log("Tracker integrity:", JSON.stringify(result.rows[0], null, 2));
   const failures = Object.entries(result.rows[0]).filter(([key, value]) =>
-    !["transactions", "recurring_rules", "categories", "excluded_transactions"].includes(key) && Number(value) > 0
+    !["transactions", "recurring_rules", "categories", "excluded_transactions", "deleted_transactions"].includes(key) && Number(value) > 0
   );
   if (failures.length > 0) {
     process.exitCode = 2;

@@ -23,7 +23,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const result = await query(
       "UPDATE tracker_transactions SET occurred_at = ($1::timestamp AT TIME ZONE 'Asia/Kolkata'), " +
       "category_id = $2, amount = $3::numeric(18,4), currency = $4, notes = $5, " +
-      "include_in_analysis = $6, updated_at = NOW() WHERE id = $7 RETURNING id",
+      "include_in_analysis = $6, updated_at = NOW() WHERE id = $7 AND deleted_at IS NULL RETURNING id",
       [body.occurred_at, body.category_id, amount, body.currency || "INR", body.notes, body.include_in_analysis, id]
     );
     if (!result.rowCount) return NextResponse.json({ error: "Transaction not found." }, { status: 404 });
@@ -39,7 +39,16 @@ export async function DELETE(request: Request, context: RouteContext) {
   try {
     await requireSession();
     const { id } = await context.params;
-    const result = await query("DELETE FROM tracker_transactions WHERE id = $1 RETURNING id", [id]);
+    const body = await request.json().catch(() => null);
+    const remark = typeof body?.remark === "string" ? body.remark.trim() : "";
+    if (!remark || remark.length > 300) {
+      return NextResponse.json({ error: "Add a remark (up to 300 characters) explaining this deletion." }, { status: 400 });
+    }
+    const result = await query(
+      "UPDATE tracker_transactions SET deleted_at = NOW(), delete_remark = $2, updated_at = NOW() " +
+      "WHERE id = $1 AND deleted_at IS NULL RETURNING id",
+      [id, remark]
+    );
     if (!result.rowCount) return NextResponse.json({ error: "Transaction not found." }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error) {

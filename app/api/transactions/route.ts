@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const search = (url.searchParams.get("search") || "").trim().slice(0, 100);
     const offset = (page - 1) * pageSize;
     const values: unknown[] = [!excluded];
-    let filter = "WHERE t.include_in_analysis = $1";
+    let filter = "WHERE t.include_in_analysis = $1 AND t.deleted_at IS NULL";
     if (search) {
       values.push(search);
       const n = values.length;
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     );
     const totalsQuery = query<{ included: string; excluded: string }>(
       "SELECT COUNT(*) FILTER (WHERE include_in_analysis = TRUE)::text AS included, " +
-      "COUNT(*) FILTER (WHERE include_in_analysis = FALSE)::text AS excluded FROM tracker_transactions"
+      "COUNT(*) FILTER (WHERE include_in_analysis = FALSE)::text AS excluded FROM tracker_transactions WHERE deleted_at IS NULL"
     );
     values.push(pageSize, offset);
     const fuzzyOrder = search.length >= 3
