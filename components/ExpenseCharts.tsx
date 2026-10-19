@@ -10,6 +10,23 @@ import { dateLabel, money } from "@/lib/format";
 
 const chartColors = ["var(--chart-plum)", "var(--chart-coral)", "var(--chart-gold)", "var(--chart-blue)", "var(--chart-sage)", "var(--chart-berry)", "var(--chart-ochre)", "var(--chart-lilac)"];
 const tooltipStyle = { borderRadius: 14, border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontSize: 12 };
+const barAxisPadding = 1.1;
+const barAxisSteps = [1, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+/** Bars can only share one currency at a time, so the ceiling is derived from values, not a fixed range. */
+function barAxisScale(rows: { amount: number }[]): { domain: [number, number]; ticks: number[]; format: (value: number) => string } {
+  const max = rows.reduce((result, row) => Math.max(result, Number(row.amount) || 0), 0);
+  const padded = max * barAxisPadding;
+  if (!Number.isFinite(padded) || padded <= 0) return { domain: [0, 1], ticks: [0, 1], format: (value) => String(value) };
+  const magnitude = 10 ** Math.floor(Math.log10(padded / 4));
+  const step = barAxisSteps.map((factor) => factor * magnitude).find((candidate) => candidate * 4 >= padded) || magnitude * 10;
+  const upper = step * 4;
+  return {
+    domain: [0, upper],
+    ticks: [0, step, step * 2, step * 3, upper],
+    format: (value) => value >= 1000 ? `${Number((value / 1000).toFixed(1))}k` : step < 1 ? String(value) : String(Math.round(value))
+  };
+}
 
 export function TrendChart({ analytics, currency, compact = false }: { analytics: Analytics; currency: string; compact?: boolean }) {
   const data = useMemo(() => analytics.months.filter((row) => row.currency === currency).map((row) => ({
@@ -38,20 +55,24 @@ export function CategoryDonut({ categories, currency }: { categories: Analytics[
 }
 
 export function DailyBars({ rows, currency }: { rows: Analytics["daily"]; currency: string }) {
-  return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
+  const data = useMemo(() => rows.map((row) => ({ ...row, amount: Number(row.amount) })), [rows]);
+  const axis = useMemo(() => barAxisScale(data), [data]);
+  return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
     <CartesianGrid stroke="var(--line)" strokeDasharray="2 5" vertical={false} />
     <XAxis dataKey="date" tickFormatter={(value) => String(value).slice(-2)} tickLine={false} axisLine={false} interval="preserveStartEnd" tick={{ fill: "var(--muted)", fontSize: 9 }} />
-    <YAxis domain={([, dataMax]) => [0, dataMax > 0 ? dataMax * 1.08 : 1]} allowDataOverflow tickCount={4} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(Math.round(Number(value)))} />
+    <YAxis domain={axis.domain} ticks={axis.ticks} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={axis.format} />
     <Tooltip labelFormatter={(value) => dateLabel(String(value) + "T00:00:00Z", { day: "numeric", month: "short" })} formatter={(value) => money(Number(value), currency)} contentStyle={tooltipStyle} />
     <Bar dataKey="amount" fill="var(--chart-coral)" radius={[5, 5, 0, 0]} maxBarSize={24} />
   </BarChart></ResponsiveContainer></div>;
 }
 
 export function WeekdayBars({ rows, currency }: { rows: Analytics["weekdays"]; currency: string }) {
-  return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
+  const data = useMemo(() => rows.map((row) => ({ ...row, amount: Number(row.amount) })), [rows]);
+  const axis = useMemo(() => barAxisScale(data), [data]);
+  return <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 12, right: 2, left: -22, bottom: 0 }}>
     <CartesianGrid stroke="var(--line)" strokeDasharray="2 5" vertical={false} />
     <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 10 }} />
-    <YAxis domain={([, dataMax]) => [0, dataMax > 0 ? dataMax * 1.08 : 1]} allowDataOverflow tickCount={4} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={(value) => Number(value) >= 1000 ? `${(Number(value) / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(Math.round(Number(value)))} />
+    <YAxis domain={axis.domain} ticks={axis.ticks} tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 9 }} tickFormatter={axis.format} />
     <Tooltip formatter={(value) => [money(Number(value), currency), "Average"]} contentStyle={tooltipStyle} />
     <Bar dataKey="amount" fill="var(--chart-plum)" radius={[5, 5, 0, 0]} maxBarSize={28} />
   </BarChart></ResponsiveContainer></div>;

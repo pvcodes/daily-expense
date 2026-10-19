@@ -10,6 +10,7 @@ import type { DashboardView, RecurringDraft, TransactionDraft } from "@/componen
 import { BottomNav } from "@/components/BottomNav";
 import { ExpenseSheet, RecurringSheet } from "@/components/ExpenseSheets";
 import { HomeScreen, InsightsScreen, RecurringScreen, TransactionsScreen } from "@/components/DashboardScreens";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { BrandMark, Notice } from "@/components/ui";
 
 function currentMonthKey() {
@@ -122,9 +123,12 @@ export default function Dashboard() {
   return <div className="shell">
     <header className="app-header">
       <div className="brand"><BrandMark /><span className="brand-copy"><strong>Pocket Ledger</strong><small>PERSONAL EXPENSES</small></span></div>
-      <button className="header-action" type="button" aria-label="Sign out" onClick={signOut} disabled={signingOut}>
-        {signingOut ? <span className="sr-only">Signing out</span> : <LogOut size={17} />}
-      </button>
+      <div className="header-actions">
+        <ThemeToggle />
+        <button className="header-action" type="button" aria-label="Sign out" onClick={signOut} disabled={signingOut}>
+          {signingOut ? <span className="sr-only">Signing out</span> : <LogOut size={17} />}
+        </button>
+      </div>
     </header>
     <main className="main-content" aria-label={pageTitle}>
       {error && <Notice onRetry={() => void reload()}>{error}</Notice>}

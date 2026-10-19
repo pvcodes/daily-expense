@@ -17,6 +17,16 @@ export async function GET(request: Request) {
       timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit"
     }).format(new Date());
     const monthStart = month + "-01";
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit"
+    }).format(new Date());
+    const todayTotals = query(
+      "SELECT a.currency::text AS currency, SUM(ABS(a.amount))::text AS amount FROM tracker_analysis_transactions a " +
+      "WHERE a.occurred_at >= ($1::date::timestamp AT TIME ZONE 'Asia/Kolkata') " +
+      "AND a.occurred_at < (($1::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata') " +
+      "GROUP BY 1 ORDER BY 1",
+      [today]
+    );
     const totals = await query(
       "WITH bounds AS (SELECT $1::date AS start_date, ($1::date + INTERVAL '1 month')::date AS next_date), " +
       "current_totals AS (SELECT a.currency::text AS currency, SUM(ABS(a.amount)) AS amount FROM tracker_analysis_transactions a, bounds b " +
@@ -61,6 +71,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       month,
       totals: totals.rows,
+      today: (await todayTotals).rows,
       months: months.rows,
       categories: categories.rows,
       weekdays: weekdays.rows,

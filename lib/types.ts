@@ -52,6 +52,7 @@ export type CronRun = {
 
 export type Analytics = {
   totals: { currency: string; amount: string; previous_amount: string }[];
+  today: { currency: string; amount: string }[];
   months: { month: string; currency: string; amount: string }[];
   categories: { category: string; icon: string; currency: string; amount: string; count: number }[];
   weekdays: { day: string; currency: string; amount: string }[];

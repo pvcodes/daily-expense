@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession, validIsoCurrency, validateSameOrigin } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { validAmountForCurrency } from "@/lib/format";
+import { validAmountForCurrency, isFutureDateTime } from "@/lib/format";
 import { buildTransactionSearch, parseSearchQuery } from "@/lib/search-query";
 
 export const runtime = "nodejs";
@@ -67,6 +67,9 @@ export async function POST(request: Request) {
   try {
     await requireSession();
     const body = await request.json();
+    if (validDateTime(body.occurred_at) && isFutureDateTime(body.occurred_at)) {
+      return NextResponse.json({ error: "Choose a date and time that is not in the future." }, { status: 400 });
+    }
     if (!validAmountForCurrency(body.amount, body.currency || "INR") || !validDateTime(body.occurred_at) ||
         typeof body.category_id !== "string" || !validIsoCurrency(body.currency || "INR") ||
         (body.notes !== undefined && (typeof body.notes !== "string" || body.notes.length > 300)) ||

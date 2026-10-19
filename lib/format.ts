@@ -36,3 +36,12 @@ export function localDateTimeInput(value?: string) {
   const get = (name: string) => parts.find((part) => part.type === name)?.value || "";
   return get("year") + "-" + get("month") + "-" + get("day") + "T" + get("hour") + ":" + get("minute");
 }
+
+/**
+ * Wall-clock values from `localDateTimeInput` sort lexicographically, so a plain
+ * string comparison tells us whether an entry is dated in the future. Both the
+ * browser and the server resolve "now" in Asia/Kolkata, keeping the check consistent.
+ */
+export function isFutureDateTime(value: string) {
+  return value > localDateTimeInput();
+}

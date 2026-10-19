@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession, validIsoCurrency, validateSameOrigin } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { validAmountForCurrency } from "@/lib/format";
+import { validAmountForCurrency, isFutureDateTime } from "@/lib/format";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const body = await request.json();
     const amount = String(body.amount ?? "");
+    if (typeof body.occurred_at === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(body.occurred_at) && isFutureDateTime(body.occurred_at)) {
+      return NextResponse.json({ error: "Choose a date and time that is not in the future." }, { status: 400 });
+    }
     if (!validAmountForCurrency(amount, body.currency || "INR") ||
         !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(body.occurred_at || "") ||
         typeof body.category_id !== "string" || !validIsoCurrency(body.currency || "INR") ||

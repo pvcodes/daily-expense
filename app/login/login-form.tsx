@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { BrandMark } from "@/components/ui";
 
 export default function LoginForm() {
@@ -36,6 +37,7 @@ export default function LoginForm() {
 
   return (
     <main className="login-page">
+      <div className="login-theme"><ThemeToggle /></div>
       <form className="login-card" onSubmit={submit}>
         <div className="brand">
           <BrandMark />

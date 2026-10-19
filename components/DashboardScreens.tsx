@@ -34,6 +34,10 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, in
   const totals = analytics?.totals || [];
   const selectedCurrency = useMemo(() => totals.find((row) => row.currency === "INR")?.currency || totals[0]?.currency || analytics?.months[0]?.currency || "INR", [totals, analytics?.months]);
   const total = totals.find((row) => row.currency === selectedCurrency);
+  const spentToday = useMemo(
+    () => analytics?.today.find((row) => row.currency === selectedCurrency)?.amount || "0",
+    [analytics?.today, selectedCurrency]
+  );
   const monthName = useMemo(() => new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(month + "-01T12:00:00")), [month]);
   const trendRows = useMemo(() => analytics?.months.filter((row) => row.currency === selectedCurrency).map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) })) || [], [analytics?.months, selectedCurrency]);
 
@@ -51,6 +55,7 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, in
       </div>
     </section>
     <div className="quick-stats" aria-label="This month at a glance">
+      <div className="stat-today"><span>Spent today</span><strong>{loading ? "—" : money(spentToday, selectedCurrency)}</strong></div>
       <div><span>Entries</span><strong>{includedCount}</strong></div>
       <div><span>Recurring rules</span><strong>{recurringCount}</strong></div>
       <div><span>Currencies</span><strong>{totals.length || 0}</strong></div>

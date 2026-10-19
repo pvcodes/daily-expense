@@ -1,12 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowRight, Search, Trash2, X } from "lucide-react";
 import type { Category } from "@/lib/types";
 import { api } from "@/lib/client";
-import { currencyFractionDigits, localDateTimeInput } from "@/lib/format";
+import { currencyFractionDigits, isFutureDateTime, localDateTimeInput } from "@/lib/format";
 import type { RecurringDraft, TransactionDraft } from "@/components/dashboard-types";
 import { IconFor } from "@/components/ui";
+
+const HOURS = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
+
+/**
+ * Two selects keep the time in 24-hour form on every browser. A native
+ * `type="time"` input follows the device locale and can render a 12-hour clock.
+ */
+function TimeField({ value, onChange, label = "Time", className = "" }: {
+  value: string; onChange: (value: string) => void; label?: string; className?: string;
+}) {
+  const [rawHour = "00", rawMinute = "00"] = (value || "00:00").split(":");
+  const hour = /^\d{1,2}$/.test(rawHour) ? rawHour.padStart(2, "0") : "00";
+  const minute = /^\d{1,2}$/.test(rawMinute) ? rawMinute.padStart(2, "0") : "00";
+  return <div className={"time-field " + className} role="group" aria-label={label}>
+    <select aria-label={label + " hour"} value={hour} onChange={(event) => onChange(event.target.value + ":" + minute)}>
+      {HOURS.map((option) => <option key={option} value={option}>{option}</option>)}
+    </select>
+    <span aria-hidden="true">:</span>
+    <select aria-label={label + " minute"} value={minute} onChange={(event) => onChange(hour + ":" + event.target.value)}>
+      {MINUTES.map((option) => <option key={option} value={option}>{option}</option>)}
+    </select>
+  </div>;
+}
 
 function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
   title: string; eyebrow: string; onClose: () => void; children: React.ReactNode; focusRef?: React.RefObject<HTMLElement | null>;
@@ -107,6 +131,11 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
   const [currency, setCurrency] = useState(draft?.currency || "INR");
   const [notes, setNotes] = useState(draft?.notes || "");
   const [occurredAt, setOccurredAt] = useState(draft?.occurred_at || localDateTimeInput());
+  // Frozen "now" keeps the future-date ceiling stable while the sheet is open.
+  const [nowLocal] = useState(localDateTimeInput);
+  const clampToNow = useCallback((next: string) => (isFutureDateTime(next) ? nowLocal : next), [nowLocal]);
+  const updateDate = useCallback((nextDate: string) => setOccurredAt(clampToNow(nextDate + occurredAt.slice(10))), [clampToNow, occurredAt]);
+  const updateTime = useCallback((nextTime: string) => setOccurredAt(clampToNow(occurredAt.slice(0, 10) + "T" + nextTime)), [clampToNow, occurredAt]);
   const [included, setIncluded] = useState(draft?.include_in_analysis ?? true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -118,6 +147,7 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (isFutureDateTime(occurredAt)) { setError("Choose a date and time that is not in the future."); return; }
     setError(""); setBusy(true);
     try {
       const body = { amount, category_id: categoryId, currency, notes, occurred_at: occurredAt, include_in_analysis: included };
@@ -151,8 +181,9 @@ export function ExpenseSheet({ draft, categories, onClose, onSaved, returnFocusR
       <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} />
       <div className="entry-details-content entry-always-visible">
         <div className="expense-date-time-row">
-          <input className="expense-date-time-input" aria-label="Date" id="expense-date" type="date" required value={occurredAt.slice(0, 10)} onChange={(event) => setOccurredAt(event.target.value + occurredAt.slice(10))} />
-          <input className="expense-date-time-input" aria-label="Time" id="expense-time" type="time" required value={occurredAt.slice(11, 16)} onChange={(event) => setOccurredAt(occurredAt.slice(0, 10) + "T" + event.target.value)} />
+          <input className="expense-date-time-input" aria-label="Date" id="expense-date" type="date" required
+            max={nowLocal.slice(0, 10)} value={occurredAt.slice(0, 10)} onChange={(event) => updateDate(event.target.value)} />
+          <TimeField className="expense-date-time-input" label="Time" value={occurredAt.slice(11, 16)} onChange={updateTime} />
         </div>
         <div className="field"><label htmlFor="expense-notes">Note <span className="muted">(optional)</span></label><input id="expense-notes" enterKeyHint="done" autoCapitalize="sentences" autoCorrect="on" maxLength={300} placeholder="What was it for?" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
         <div className="toggle-row"><div className="toggle-copy"><strong>Include in analysis</strong><small>{included ? "Shown in charts and totals" : "Hidden from charts and totals"}</small></div>
@@ -225,7 +256,7 @@ export function RecurringSheet({ draft, categories, onClose, onSaved, returnFocu
       <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} />
       <div className="form-two-columns recurring-fields">
         <div className="field"><label htmlFor="rule-start">Starts on</label><input id="rule-start" type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} /></div>
-        <div className="field"><label htmlFor="rule-time">Local time</label><input id="rule-time" type="time" required value={time} onChange={(event) => setTime(event.target.value)} /></div>
+        <div className="field"><span className="field-label">Local time</span><TimeField className="time-field-boxed" label="Local time" value={time} onChange={setTime} /></div>
         <div className="field"><label htmlFor="rule-day">Day each month</label><input id="rule-day" type="number" inputMode="numeric" enterKeyHint="done" min="1" max="31" required value={day} onChange={(event) => setDay(Number(event.target.value))} /></div>
         <div className="field"><label htmlFor="rule-end">Ends on <span className="muted">(optional)</span></label><input id="rule-end" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></div>
       </div>
