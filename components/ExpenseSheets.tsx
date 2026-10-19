@@ -11,22 +11,29 @@ import { IconFor } from "@/components/ui";
 function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
   title: string; eyebrow: string; onClose: () => void; children: React.ReactNode; focusRef?: React.RefObject<HTMLElement | null>;
 }) {
-  const viewportHeight = useRef("100dvh");
-  const [, renderViewport] = useState(0);
+  // iOS keeps the layout viewport at full height when the keyboard opens and only shrinks the
+  // visual viewport, so `position: fixed; inset: 0` would leave the sheet pinned behind the
+  // keyboard. Measure the visible area instead and align the backdrop to it, which keeps the
+  // focused field (and the whole sheet) above the keyboard.
+  const [viewport, setViewport] = useState({ height: "100dvh", top: "0px" });
+  const viewportRef = useRef(viewport);
   useEffect(() => {
     const view = window.visualViewport;
     let frame = 0;
+    const measure = () => view
+      ? { height: `${view.height}px`, top: `${view.offsetTop}px` }
+      : { height: `${window.innerHeight}px`, top: "0px" };
     const apply = () => {
       frame = 0;
-      const next = `${view?.height || window.innerHeight}px`;
-      if (next === viewportHeight.current) return;
-      viewportHeight.current = next;
-      renderViewport((v) => v + 1);
+      const next = measure();
+      if (next.height === viewportRef.current.height && next.top === viewportRef.current.top) return;
+      viewportRef.current = next;
+      setViewport(next);
     };
     // Coalesce the burst of resize/scroll events the iOS keyboard emits into one render per frame.
     const sync = () => {
-      const next = `${view?.height || window.innerHeight}px`;
-      if (next === viewportHeight.current || frame) return;
+      const next = measure();
+      if (frame || (next.height === viewportRef.current.height && next.top === viewportRef.current.top)) return;
       frame = requestAnimationFrame(apply);
     };
     const oldOverflow = document.body.style.overflow;
@@ -56,8 +63,9 @@ function BottomSheet({ title, eyebrow, onClose, children, focusRef }: {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
-  return <div className="sheet-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <section className="sheet" style={{ maxHeight: `calc(${viewportHeight.current} - env(safe-area-inset-top) - 0.5rem)` }}
+  return <div className="sheet-backdrop" role="presentation" style={{ top: viewport.top, height: viewport.height, bottom: "auto" }}
+    onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="sheet" style={{ maxHeight: `calc(${viewport.height} - env(safe-area-inset-top) - 0.5rem)` }}
       role="dialog" aria-modal="true" aria-labelledby="sheet-title" onKeyDown={handleKeyDown}>
       <div className="sheet-handle" aria-hidden="true" />
       <header className="sheet-head"><div><p className="eyebrow">{eyebrow}</p><h2 id="sheet-title">{title}</h2></div>
