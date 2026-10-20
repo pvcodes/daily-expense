@@ -25,10 +25,9 @@ function PageLoading({ label }: { label: string }) {
   return <div className="page-loading" role="status" aria-label={label}><SkeletonBlock className="skeleton-heading" /><SkeletonBlock className="skeleton-feature" /><SkeletonBlock className="skeleton-list" /><span className="sr-only">{label}</span></div>;
 }
 
-export const HomeScreen = memo(function HomeScreen({ analytics, transactions, includedCount, recurringCount, loading, month, setMonth, onEdit, onAdd, onNavigate }: {
-  analytics: Analytics | null; transactions: Transaction[]; includedCount: number; loading: boolean; month: string;
-  recurringCount: number;
-  setMonth: (month: string) => void; onEdit: (tx: Transaction) => void; onAdd: () => void; onNavigate: (view: DashboardView) => void;
+export const HomeScreen = memo(function HomeScreen({ analytics, transactions, loading, month, onEdit, onAdd, onNavigate }: {
+  analytics: Analytics | null; transactions: Transaction[]; loading: boolean; month: string;
+  onEdit: (tx: Transaction) => void; onAdd: () => void; onNavigate: (view: DashboardView) => void;
 }) {
   const recent = useMemo(() => transactions.filter((tx) => tx.include_in_analysis).slice(0, 5), [transactions]);
   const totals = analytics?.totals || [];
@@ -43,23 +42,21 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, in
 
   if (loading && !analytics) return <PageLoading label="Loading your ledger" />;
   return <>
-    <PageHeading eyebrow="POCKET LEDGER" title="Your month, in view." copy="A clear look at everyday spending." action={<MonthPicker month={month} onChange={setMonth} />} />
+    <PageHeading eyebrow={<span lang="hi">बही</span>} title="Your month, in view." copy="A clear look at everyday spending." />
     <section className="month-overview" aria-label={`${monthName} spending summary`}>
       <div className="overview-copy"><span className="eyebrow">SPENT IN {monthName.toUpperCase()}</span>
         {loading ? <SkeletonBlock className="overview-skeleton" /> : total ? <strong className="overview-amount">{money(total.amount, selectedCurrency)}</strong> : <strong className="overview-amount">{money(0, selectedCurrency)}</strong>}
         <span className="overview-note">Included expenses only</span>
+      </div>
+      <div className="overview-today">
+        <span className="eyebrow">SPENT TODAY</span>
+        <strong className="overview-today-amount">{loading ? "—" : money(spentToday, selectedCurrency)}</strong>
       </div>
       <div className="overview-side">
         <span className="overview-mark" aria-hidden="true"><CircleDollarSign size={22} /></span>
         {total && Number(total.previous_amount) > 0 ? <span className="overview-compare"><ArrowDownRight size={14} /> {money(total.previous_amount, selectedCurrency)} last month</span> : <span className="overview-compare">One entry at a time</span>}
       </div>
     </section>
-    <div className="quick-stats" aria-label="This month at a glance">
-      <div className="stat-today"><span>Spent today</span><strong>{loading ? "—" : money(spentToday, selectedCurrency)}</strong></div>
-      <div><span>Entries</span><strong>{includedCount}</strong></div>
-      <div><span>Recurring rules</span><strong>{recurringCount}</strong></div>
-      <div><span>Currencies</span><strong>{totals.length || 0}</strong></div>
-    </div>
 
     <section className="home-section">
       <SectionHeading title="Spending trend" action={<button type="button" className="text-action" onClick={() => onNavigate("insights")}>More insights <ArrowRight size={14} /></button>} />
@@ -154,7 +151,7 @@ export const TransactionsScreen = memo(function TransactionsScreen({ refreshVers
         </label>
         <button type="button" className={"filter-help-button" + (showFilterHelp ? " on" : "")} aria-expanded={showFilterHelp} aria-controls="filter-help-panel"
           onClick={() => setShowFilterHelp((open) => !open)}>
-          <HelpCircle size={16} aria-hidden="true" /><span>Filters</span>
+          <HelpCircle size={16} aria-hidden="true" />
         </button>
       </div>
       {showFilterHelp && <section className="filter-help" id="filter-help-panel" aria-label="How to search with filters"

@@ -114,6 +114,14 @@ a { color: inherit; text-decoration: none; }
 }
 .brand { display: flex; align-items: center; gap: 10px; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
+.app-header-home .month-picker { flex: 0 0 auto; }
+/* The home header also carries the month picker, so the tagline yields on phones. */
+@media (max-width: 679px) { .app-header-home .brand-copy small { display: none; } }
+@media (max-width: 400px) {
+  .app-header-home { gap: 8px; padding-inline: 14px; }
+  .app-header-home .month-picker > span { min-width: 66px; }
+}
+@media (max-width: 359px) { .app-header-home .brand-mark { display: none; } }
 .theme-control { position: relative; }
 .theme-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: grid; width: 168px; gap: 2px; padding: 6px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-raised); box-shadow: var(--shadow); animation: theme-menu-enter .14s ease-out; }
 .theme-option { display: flex; min-height: 40px; align-items: center; gap: 9px; padding: 0 10px; border: 0; border-radius: 11px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 650; text-align: left; cursor: pointer; }
@@ -122,11 +130,18 @@ a { color: inherit; text-decoration: none; }
 .theme-option span { flex: 1; }
 .theme-check { color: var(--accent); }
 @keyframes theme-menu-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.header-menu { width: 190px; }
+.menu-label { display: block; padding: 7px 10px 3px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.menu-divider { display: block; height: 1px; margin: 4px 6px; background: var(--line); }
+.menu-item { color: var(--bad); }
+.menu-item:hover { background: color-mix(in oklch, var(--bad) 10%, transparent); }
 .login-theme { position: fixed; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); z-index: 5; }
 .brand-mark { display: grid; width: 39px; height: 39px; place-items: center; border-radius: 14px; background: var(--accent); color: var(--surface); }
 .brand-mark-compact { width: 35px; height: 35px; }
 .brand-copy { display: grid; gap: 2px; }
 .brand-copy strong { font-size: 14px; font-weight: 780; letter-spacing: -.035em; }
+/* Devanagari conjuncts and the shirorekha break under negative tracking. */
+.brand-copy strong[lang="hi"] { letter-spacing: 0; font-size: 16px; }
 .brand-copy small { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .105em; }
 .header-action, .icon-button, .primary-icon-button {
   display: inline-grid; min-width: 44px; min-height: 44px; place-items: center;
@@ -141,6 +156,8 @@ a { color: inherit; text-decoration: none; }
 .page-heading-copy { min-width: 0; }
 .page-heading-action { flex: 0 0 auto; }
 .eyebrow { margin: 0 0 7px; color: var(--muted); font-size: 10px; font-weight: 760; letter-spacing: .13em; }
+/* Devanagari conjuncts and the shirorekha break under wide tracking. */
+.eyebrow [lang="hi"] { letter-spacing: 0; font-size: 13px; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { letter-spacing: -.035em; }
 h1 { margin-bottom: 4px; font-size: 27px; line-height: 1.12; font-weight: 760; }
@@ -151,7 +168,7 @@ h3 { margin-bottom: 0; font-size: 15px; }
 .month-picker > span { min-width: 78px; color: var(--ink); font-size: 11px; font-weight: 720; text-align: center; }
 .month-step { min-width: 35px; min-height: 38px; border-color: transparent; background: transparent; }
 
-.month-overview { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 18px; border: 1px solid color-mix(in oklch, var(--accent) 13%, var(--line)); border-radius: 22px; background: var(--accent-soft); }
+.month-overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 11px; padding: 19px 18px; border: 1px solid color-mix(in oklch, var(--accent) 13%, var(--line)); border-radius: 22px; background: var(--accent-soft); }
 .overview-copy { display: grid; min-width: 0; gap: 4px; }
 .overview-copy .eyebrow { margin: 0; color: var(--accent); }
 .overview-amount { overflow: hidden; color: var(--ink); font-size: 32px; font-weight: 760; letter-spacing: -.06em; line-height: 1.08; text-overflow: ellipsis; }
@@ -160,13 +177,14 @@ h3 { margin-bottom: 0; font-size: 15px; }
 .overview-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 14px; background: var(--surface); color: var(--accent); }
 .overview-compare { display: flex; align-items: center; gap: 3px; color: var(--accent-ink); font-size: 9px; font-weight: 700; white-space: nowrap; }
 .overview-skeleton { width: 190px; height: 36px; }
-.quick-stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 11px 0 27px; padding: 12px 3px; border-bottom: 1px solid var(--line); }
-.quick-stats > div { display: grid; align-content: start; justify-items: start; gap: 4px; padding: 0 10px; border-right: 1px solid var(--line); }
-.quick-stats > div:first-child { padding-left: 2px; }
-.quick-stats > div:last-child { border: 0; }
-.quick-stats span { color: var(--muted); font-size: 10px; }
-.quick-stats strong { font-size: 14px; font-weight: 740; font-variant-numeric: tabular-nums; }
-.quick-stats .stat-today strong { color: var(--accent); }
+/* Spent-in-month and spent-today sit side by side in the overview row. */
+.overview-today { display: grid; flex: 0 0 auto; gap: 4px; min-width: 0; padding-left: 16px; border-left: 1px solid color-mix(in oklch, var(--accent) 18%, var(--line)); }
+.overview-today .eyebrow { margin: 0; }
+.overview-today-amount { overflow: hidden; color: var(--accent); font-size: 22px; font-weight: 760; font-variant-numeric: tabular-nums; letter-spacing: -.04em; line-height: 1.08; text-overflow: ellipsis; }
+/* Phone width cannot hold three blocks in one line, so the comparison drops to a footer. */
+@media (max-width: 679px) {
+  .overview-side { display: flex; flex: 1 0 100%; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid color-mix(in oklch, var(--accent) 13%, var(--line)); }
+}
 .home-section { margin-top: 28px; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
 .section-heading h2 { flex: 1; }

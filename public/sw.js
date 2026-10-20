@@ -1,4 +1,4 @@
-const CACHE = "pocket-ledger-static-v1";
+const CACHE = "pocket-ledger-static-v2";
 const STATIC_ASSETS = ["/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

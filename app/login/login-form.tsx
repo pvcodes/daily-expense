@@ -41,7 +41,7 @@ export default function LoginForm() {
       <form className="login-card" onSubmit={submit}>
         <div className="brand">
           <BrandMark />
-          <span className="brand-copy"><strong>Pocket Ledger</strong><small>YOUR PERSONAL MONEY SPACE</small></span>
+          <span className="brand-copy"><strong lang="hi">बही</strong><small>YOUR PERSONAL MONEY SPACE</small></span>
         </div>
         <h1>Welcome back</h1>
         <p>Your spending, kept private and easy to understand.</p>

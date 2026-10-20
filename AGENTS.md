@@ -1,4 +1,4 @@
-# Pocket Ledger
+# बही (Bahi)
 
 Personal expense tracker built with Next.js App Router, React, PostgreSQL on Neon, and Vercel. This deployment is single-user and protected by a server-validated password session.
 

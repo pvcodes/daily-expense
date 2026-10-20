@@ -3,10 +3,10 @@ import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "Pocket Ledger",
+  title: "बही",
   description: "A private, personal expense tracker",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Ledger" },
-  applicationName: "Pocket Ledger"
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "बही" },
+  applicationName: "बही"
 };
 
 export const viewport: Viewport = {

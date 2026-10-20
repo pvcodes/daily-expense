@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LogOut } from "lucide-react";
 import { api } from "@/lib/client";
 import { clearActivityPage, writeActivityPage, type ActivityPage } from "@/lib/activity-cache";
 import { localDateTimeInput } from "@/lib/format";
@@ -9,8 +8,9 @@ import type { Analytics, Category, RecurringRule, Transaction } from "@/lib/type
 import type { DashboardView, RecurringDraft, TransactionDraft } from "@/components/dashboard-types";
 import { BottomNav } from "@/components/BottomNav";
 import { ExpenseSheet, RecurringSheet } from "@/components/ExpenseSheets";
+import { HeaderMenu } from "@/components/HeaderMenu";
+import { MonthPicker } from "@/components/MonthPicker";
 import { HomeScreen, InsightsScreen, RecurringScreen, TransactionsScreen } from "@/components/DashboardScreens";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { BrandMark, Notice } from "@/components/ui";
 
 function currentMonthKey() {
@@ -23,7 +23,6 @@ export default function Dashboard() {
   const [view, setView] = useState<DashboardView>("home");
   const [month, setMonth] = useState(currentMonthKey);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [includedCount, setIncludedCount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -47,7 +46,6 @@ export default function Dashboard() {
       api<{ rules: RecurringRule[] }>("/api/recurring")
     ]);
     setTransactions(includedData.transactions);
-    setIncludedCount(includedData.total);
     writeActivityPage(includedData);
     setCategories(categoryData.categories);
     setRules(recurringData.rules);
@@ -121,18 +119,16 @@ export default function Dashboard() {
 
   const pageTitle = view === "home" ? "Your month" : view === "transactions" ? "Activity" : view === "recurring" ? "Recurring" : "Insights";
   return <div className="shell">
-    <header className="app-header">
-      <div className="brand"><BrandMark /><span className="brand-copy"><strong>Pocket Ledger</strong><small>PERSONAL EXPENSES</small></span></div>
+    <header className={view === "home" ? "app-header app-header-home" : "app-header"}>
+      <div className="brand"><BrandMark /><span className="brand-copy"><strong lang="hi">बही</strong><small>PERSONAL EXPENSES</small></span></div>
       <div className="header-actions">
-        <ThemeToggle />
-        <button className="header-action" type="button" aria-label="Sign out" onClick={signOut} disabled={signingOut}>
-          {signingOut ? <span className="sr-only">Signing out</span> : <LogOut size={17} />}
-        </button>
+        {view === "home" && <MonthPicker month={month} onChange={setMonth} />}
+        <HeaderMenu onSignOut={signOut} signingOut={signingOut} />
       </div>
     </header>
     <main className="main-content" aria-label={pageTitle}>
       {error && <Notice onRetry={() => void reload()}>{error}</Notice>}
-      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} includedCount={includedCount} recurringCount={rules.filter((rule) => !rule.archived).length} loading={loading} month={month} setMonth={setMonth} onEdit={editTransaction} onAdd={addExpense} onNavigate={setView} />}
+      {view === "home" && <HomeScreen analytics={analytics} transactions={transactions} loading={loading} month={month} onEdit={editTransaction} onAdd={addExpense} onNavigate={setView} />}
       {view === "transactions" && <TransactionsScreen refreshVersion={refreshVersion} onEdit={editTransaction} />}
       {view === "recurring" && <RecurringScreen rules={rules} loading={loading} onEdit={openRecurring} onReload={() => void reloadRules()} />}
       {view === "insights" && <InsightsScreen analytics={analytics} loading={loading} month={month} setMonth={setMonth} />}

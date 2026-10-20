@@ -1,4 +1,4 @@
-# Pocket Ledger
+# बही (Bahi)
 
 A single-user, iPhone-first expense tracker using Next.js, Neon Postgres, and Vercel Cron.
 

@@ -20,7 +20,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
 }
 
 export function PageHeading({ eyebrow, title, copy, action }: {
-  eyebrow: string; title: string; copy?: string; action?: ReactNode;
+  eyebrow: ReactNode; title: string; copy?: string; action?: ReactNode;
 }) {
   return <header className="page-heading">
     <div className="page-heading-copy"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{copy && <p className="page-subtitle">{copy}</p>}</div>
