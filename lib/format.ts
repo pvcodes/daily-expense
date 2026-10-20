@@ -45,3 +45,13 @@ export function localDateTimeInput(value?: string) {
 export function isFutureDateTime(value: string) {
   return value > localDateTimeInput();
 }
+
+/**
+ * Current month as a `YYYY-MM` key. Keys are zero-padded, so comparing two of
+ * them as strings is the same as comparing them chronologically.
+ */
+export function currentMonthKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  const part = (name: string) => parts.find((item) => item.type === name)?.value || "";
+  return part("year") + "-" + part("month");
+}

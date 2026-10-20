@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/client";
 import { clearActivityPage, writeActivityPage, type ActivityPage } from "@/lib/activity-cache";
-import { localDateTimeInput } from "@/lib/format";
+import { currentMonthKey, localDateTimeInput } from "@/lib/format";
 import type { Analytics, Category, RecurringRule, Transaction } from "@/lib/types";
 import type { DashboardView, RecurringDraft, TransactionDraft } from "@/components/dashboard-types";
 import { BottomNav } from "@/components/BottomNav";
@@ -12,12 +12,6 @@ import { HeaderMenu } from "@/components/HeaderMenu";
 import { MonthPicker } from "@/components/MonthPicker";
 import { HomeScreen, InsightsScreen, RecurringScreen, TransactionsScreen } from "@/components/DashboardScreens";
 import { BrandMark, Notice } from "@/components/ui";
-
-function currentMonthKey() {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit" }).formatToParts(new Date());
-  const part = (key: string) => parts.find((item) => item.type === key)?.value || "";
-  return `${part("year")}-${part("month")}`;
-}
 
 export default function Dashboard() {
   const [view, setView] = useState<DashboardView>("home");
