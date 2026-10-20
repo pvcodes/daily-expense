@@ -23,7 +23,7 @@ export function PageHeading({ eyebrow, title, copy, action }: {
   eyebrow?: ReactNode; title: string; copy?: string; action?: ReactNode;
 }) {
   return <header className="page-heading">
-    <div className="page-heading-copy"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{copy && <p className="page-subtitle">{copy}</p>}</div>
+    <div className="page-heading-copy">{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{copy && <p className="page-subtitle">{copy}</p>}</div>
     {action && <div className="page-heading-action">{action}</div>}
   </header>;
 }

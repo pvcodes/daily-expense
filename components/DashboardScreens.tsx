@@ -39,19 +39,27 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, lo
   );
   const monthName = useMemo(() => new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(month + "-01T12:00:00")), [month]);
   const trendRows = useMemo(() => analytics?.months.filter((row) => row.currency === selectedCurrency).map((row) => ({ label: new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(row.month + "-01T12:00:00")), value: money(row.amount, selectedCurrency) })) || [], [analytics?.months, selectedCurrency]);
-
+  const weekdays = useMemo(() => (analytics?.weekdays || []).filter((row) => row.currency === selectedCurrency), [analytics?.weekdays, selectedCurrency]);
+  const weekdayRows = useMemo(() => weekdays.map((row) => ({ label: row.day, value: money(row.amount, selectedCurrency) })), [weekdays, selectedCurrency]);
+  // Compare against the picked month using the same locale as monthName, otherwise a non-English
+  // system locale makes "today" never match.
+  const currMonth = useMemo(() => new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date()), []);
   if (loading && !analytics) return <PageLoading label="Loading your ledger" />;
   return <>
-    <PageHeading eyebrow={<span lang="hi">बही</span>} title="Your month, in view." copy="A clear look at everyday spending." />
+    <PageHeading title={`${monthName} at glance.`} copy="A clear look at everyday spending." />
     <section className="month-overview" aria-label={`${monthName} spending summary`}>
       <div className="overview-copy"><span className="eyebrow">SPENT IN {monthName.toUpperCase()}</span>
         {loading ? <SkeletonBlock className="overview-skeleton" /> : total ? <strong className="overview-amount">{money(total.amount, selectedCurrency)}</strong> : <strong className="overview-amount">{money(0, selectedCurrency)}</strong>}
         <span className="overview-note">Included expenses only</span>
       </div>
-      <div className="overview-today">
-        <span className="eyebrow">SPENT TODAY</span>
-        <strong className="overview-today-amount">{loading ? "—" : money(spentToday, selectedCurrency)}</strong>
-      </div>
+      {
+        currMonth.toLowerCase() === monthName.toLowerCase() &&
+        <div className="overview-today">
+          <span className="eyebrow">SPENT TODAY</span>
+          <strong className="overview-today-amount">{loading ? "—" : money(spentToday, selectedCurrency)}</strong>
+        </div>
+      }
+
       <div className="overview-side">
         <span className="overview-mark" aria-hidden="true"><CircleDollarSign size={22} /></span>
         {total && Number(total.previous_amount) > 0 ? <span className="overview-compare"><ArrowDownRight size={14} /> {money(total.previous_amount, selectedCurrency)} last month</span> : <span className="overview-compare">One entry at a time</span>}
@@ -63,7 +71,9 @@ export const HomeScreen = memo(function HomeScreen({ analytics, transactions, lo
       {loading ? <SkeletonBlock className="chart-skeleton" /> : analytics?.months.length ? <><TrendChart analytics={analytics} currency={selectedCurrency} compact /><DataTable title="Six-month spending" rows={trendRows} /></> :
         <EmptyState icon={<BarChart3 size={21} />} title="Your trend starts here" copy="As you add expenses, your month-to-month pattern will take shape." />}
     </section>
-
+    <section className="home-section"><SectionHeading title="Your weekly rhythm" action={<span className="unit-label">Average expense</span>} />
+      {weekdays.length ? <><WeekdayBars rows={weekdays} currency={selectedCurrency} /><DataTable title="Average expense by weekday" rows={weekdayRows} /></> : <EmptyState title="Not enough history yet" copy="Averages appear once there is spending to compare." />}
+    </section>
     <section className="home-section recent-section">
       <SectionHeading title="Latest activity" action={<button type="button" className="text-action" onClick={() => onNavigate("transactions")}>All activity <ArrowRight size={14} /></button>} />
       {loading ? <SkeletonBlock className="list-skeleton" /> : recent.length ? <TransactionList transactions={recent} onEdit={onEdit} /> :
@@ -281,30 +291,30 @@ export const InsightsScreen = memo(function InsightsScreen({ analytics, loading,
       <div className="insight-summary"><div><span>This month</span><strong>{money(total.amount, selectedCurrency)}</strong></div><div><span>Previous month</span><strong>{money(total.previous_amount, selectedCurrency)}</strong></div></div>
 
       <div className="insights-layout">
-      <section className="insight-section"><SectionHeading title="Spending over time" action={<span className="unit-label">6 months · {selectedCurrency}</span>} />
-        {months.length ? <><TrendChart analytics={{ ...(analytics as Analytics), months }} currency={selectedCurrency} /><DataTable title="Six-month spending" rows={monthRows} /></> : <EmptyState title="No trend yet" copy="Monthly totals appear here when there are included expenses." />}
-      </section>
+        <section className="insight-section"><SectionHeading title="Spending over time" action={<span className="unit-label">6 months · {selectedCurrency}</span>} />
+          {months.length ? <><TrendChart analytics={{ ...(analytics as Analytics), months }} currency={selectedCurrency} /><DataTable title="Six-month spending" rows={monthRows} /></> : <EmptyState title="No trend yet" copy="Monthly totals appear here when there are included expenses." />}
+        </section>
 
-      <section className="insight-section"><SectionHeading title="Where it went" action={<span className="unit-label">This month</span>} />
-        {categories.length ? <>
-          <CategoryDonut categories={categories} currency={selectedCurrency} />
-          <div className="category-breakdown">{categories.map((row, index) => <div className="category-breakdown-row" key={row.category}>
-            <span className="chart-swatch" style={{ background: chartColors[index % chartColors.length] }} />
-            <span>{row.category}</span><small>{row.count}</small><strong>{money(row.amount, selectedCurrency)}</strong>
-          </div>)}</div>
-          <DataTable title="Spending by category" rows={categoryRows} />
-        </> : <EmptyState title="No category totals" copy="Category patterns will show once this month has included expenses." />}
-      </section>
+        <section className="insight-section"><SectionHeading title="Where it went" action={<span className="unit-label">This month</span>} />
+          {categories.length ? <>
+            <CategoryDonut categories={categories} currency={selectedCurrency} />
+            <div className="category-breakdown">{categories.map((row, index) => <div className="category-breakdown-row" key={row.category}>
+              <span className="chart-swatch" style={{ background: chartColors[index % chartColors.length] }} />
+              <span>{row.category}</span><small>{row.count}</small><strong>{money(row.amount, selectedCurrency)}</strong>
+            </div>)}</div>
+            <DataTable title="Spending by category" rows={categoryRows} />
+          </> : <EmptyState title="No category totals" copy="Category patterns will show once this month has included expenses." />}
+        </section>
 
-      <section className="insight-section"><SectionHeading title="Spending by day" action={<span className="unit-label">Daily totals</span>} />
-        {daily.length ? <><DailyBars rows={daily} currency={selectedCurrency} /><DataTable title="Daily spending" rows={dailyRows} /></> : <EmptyState title="No daily totals" copy="There are no included expenses to show for this month." />}
-      </section>
+        <section className="insight-section"><SectionHeading title="Spending by day" action={<span className="unit-label">Daily totals</span>} />
+          {daily.length ? <><DailyBars rows={daily} currency={selectedCurrency} /><DataTable title="Daily spending" rows={dailyRows} /></> : <EmptyState title="No daily totals" copy="There are no included expenses to show for this month." />}
+        </section>
 
-      <section className="insight-section"><SectionHeading title="Your weekly rhythm" action={<span className="unit-label">Average expense</span>} />
-        {weekdays.length ? <><WeekdayBars rows={weekdays} currency={selectedCurrency} /><DataTable title="Average expense by weekday" rows={weekdayRows} /></> : <EmptyState title="Not enough history yet" copy="Averages appear once there is spending to compare." />}
-      </section>
+        <section className="insight-section"><SectionHeading title="Your weekly rhythm" action={<span className="unit-label">Average expense</span>} />
+          {weekdays.length ? <><WeekdayBars rows={weekdays} currency={selectedCurrency} /><DataTable title="Average expense by weekday" rows={weekdayRows} /></> : <EmptyState title="Not enough history yet" copy="Averages appear once there is spending to compare." />}
+        </section>
 
-      <section className="insight-section"><SectionHeading title="Daily rhythm" action={<span className="unit-label">{selectedCurrency}</span>} /><Heatmap daily={daily} month={month} currency={selectedCurrency} /></section>
+        <section className="insight-section"><SectionHeading title="Daily rhythm" action={<span className="unit-label">{selectedCurrency}</span>} /><Heatmap daily={daily} month={month} currency={selectedCurrency} /></section>
       </div>
     </>}
   </>;
